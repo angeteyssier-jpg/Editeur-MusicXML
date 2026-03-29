@@ -68,7 +68,7 @@ body{font-family:'DM Sans',sans-serif;background:#ddd9d0;color:#1a1a2e;height:10
 .s-header{text-align:center;padding-bottom:12px;border-bottom:.5px solid #c8c0aa;margin-bottom:12px}
 .s-title{font-family:'Crimson Pro',serif;font-size:26px;font-weight:600;color:#1a1a2e;margin-bottom:3px}
 .s-composer{font-family:'Crimson Pro',serif;font-size:13px;font-style:italic;color:#555}
-#measures-container{line-height:0}
+#measures-container{line-height:0;display:flex;flex-direction:column}
 #statusbar{height:22px;background:#2d2d4e;display:flex;align-items:center;padding:0 10px;gap:14px;flex-shrink:0}
 .stitem{font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace}
 .stitem b{color:rgba(255,255,255,.8);font-weight:500}
@@ -589,12 +589,32 @@ pre#xml-out{font-family:'JetBrains Mono',monospace;font-size:10px;background:#1e
         <div class="psec-t" onclick="togglePsec(this)">Affichage</div>
         <div class="psec-body">
           <div class="prow"><label class="plbl">Zoom</label>
-            <input type="range" min="40" max="200" value="100" id="zoom-r" oninput="setZoom(this.value)" style="width:100%">
+            <div style="display:flex;align-items:center;gap:4px">
+              <button onclick="stepZoom(-10)" style="background:#2d2d4e;border:1px solid #444;color:rgba(255,255,255,.8);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;line-height:1">◀</button>
+              <span id="zoom-chip-side" style="font-size:11px;color:#666;min-width:36px;text-align:center">100%</span>
+              <button onclick="stepZoom(10)"  style="background:#2d2d4e;border:1px solid #444;color:rgba(255,255,255,.8);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;line-height:1">▶</button>
+            </div>
           </div>
+          <input type="hidden" id="zoom-r" value="100">
+          <div class="prow"><label class="plbl">Sauts XML</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:11px">
+              <input type="checkbox" id="use-xml-breaks" checked
+                onchange="score.useXmlBreaks=this.checked;render()"> Respecter
+            </label>
+          </div>
+          <div class="prow"><label class="plbl">Taille portée</label>
+            <div style="display:flex;align-items:center;gap:4px">
+              <button onclick="stepStaffScale(-0.1)" style="background:#2d2d4e;border:1px solid #444;color:rgba(255,255,255,.8);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;line-height:1">◀</button>
+              <span id="staff-scale-lbl" style="font-size:11px;color:#666;min-width:36px;text-align:center">100%</span>
+              <button onclick="stepStaffScale(0.1)"  style="background:#2d2d4e;border:1px solid #444;color:rgba(255,255,255,.8);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;line-height:1">▶</button>
+            </div>
+          </div>
+          <input type="hidden" id="staff-scale-r" value="1.0">
           <div class="prow"><label class="plbl">Mesures/ligne</label>
             <select class="pinp" id="mpr-sel" onchange="setMPR(parseInt(this.value))">
               <option value="1">1</option><option value="2">2</option><option value="3">3</option>
               <option value="4" selected>4</option><option value="5">5</option><option value="6">6</option>
+              <option value="7">7</option><option value="8">8</option><option value="9">9</option>
             </select>
           </div>
           <div class="prow"><label class="plbl">Systèmes/page</label>
@@ -707,7 +727,7 @@ let tabInput  = {fretStr:''}; // saisie clavier frette en cours
 
 let score = {
   title:'Nouvelle partition',composer:'',arranger:'',
-  opus:'',publisher:'',rights:'',date:'2025',version:'1.0',revision:'',lyricFont:'Crimson Pro',lyricSize:10,
+  opus:'',publisher:'',rights:'',date:'2025',version:'1.0',revision:'',lyricFont:'Crimson Pro',lyricSize:10,staffScale:1.0,
   instr:'guitar',strings:6,
   tuning:['E2','A2','D3','G3','B3','E4'],
   tempo:80,timeNum:4,timeDen:4,key:0,
@@ -1206,6 +1226,7 @@ function svgDot(cx,cy,r,fill,parent){
 function render(){
   const mc=document.getElementById('measures-container');
   mc.innerHTML='';
+  window._pageH=0;
 
   // ── Mode multi-pistes : portées superposées ──────────
   if(score.parts && score.parts.length > 1){
@@ -1224,9 +1245,9 @@ function render(){
   const MPR     = score.mpr||2;
   const MW      = PAGE_W/MPR;
 
-  const SP      = 11;
+  const SP      = Math.round(7 * (score.staffScale||1.0));
   const STAFF_H = SP*4;
-  const TSP     = 13;
+  const TSP     = Math.round(8 * (score.staffScale||1.0));
   const NS_     = score.strings;
   const TAB_H   = (NS_-1)*TSP;
   const TOP_PAD = 46;   // espace au-dessus (lignes supp. hautes + rehearsal marks)
@@ -1279,9 +1300,9 @@ function render(){
   const rowGroups=[];
   let rowBuf=[];
   score.measures.forEach((m,i)=>{
-    // Couper AVANT cette mesure si elle a un rehearsal (sauf la 1ère)
-    if(m.rehearsal && rowBuf.length>0){
-      rowGroups.push({rms:[...rowBuf], isBreak:false});
+    // Couper si nouvelle ligne/page demandée dans le XML (sauf la 1ère)
+    if((m.rehearsal || ((m.newSystem||m.newPage)&&score.useXmlBreaks!==false)) && rowBuf.length>0){
+      rowGroups.push({rms:[...rowBuf], isBreak:false, isPage:rowBuf[rowBuf.length-1]?.newPage});
       rowBuf=[];
     }
     rowBuf.push(m);
@@ -1293,6 +1314,7 @@ function render(){
   });
   if(rowBuf.length) rowGroups.push({rms:rowBuf, isBreak:false});
   window._rowGroups=rowGroups; // accessible depuis scrollToMeasure
+  console.log('rowGroups:', rowGroups.length, 'avec rehearsal:', rowGroups.filter(rg=>rg.rms[0]?.rehearsal).length);
 
   for(let r=0;r<rowGroups.length;r++){
     const rms=rowGroups[r].rms;
@@ -1303,10 +1325,15 @@ function render(){
       +(showS&&showT?MID_GAP:0)
       +(showT?TAB_H:0)
       +BOT_PAD;
-    // Séparation visuelle avant un nouveau morceau
-    if(rms[0]?.rehearsal && r>0){
+    const isNewSection = rms[0]?.rehearsal && r>0;
+    // Séparateur HTML visible avant chaque nouveau morceau
+    if(isNewSection){
       const sep=document.createElement('div');
-      sep.style.cssText='width:100%;border-top:2px solid #c8c0aa;margin:16px 0 4px;padding-top:4px;';
+      sep.style.width='100%';
+      sep.style.height='3px';
+      sep.style.background='linear-gradient(to right, #c8c0aa, #e8e4dc, #c8c0aa)';
+      sep.style.margin='20px 0 6px';
+      sep.style.display='block';
       mc.appendChild(sep);
     }
     const svg=svgEl('svg',{
@@ -1315,11 +1342,23 @@ function render(){
       style:'display:block;margin-bottom:4px;overflow:visible'
     });
 
-    // system bracket
+    // system bracket — accolade fine à gauche des barres de portée/TAB
     if(showS&&showT){
-      svgLine(6,staffTop,6,tabTop+TAB_H,'#1a1a2e',2.5,svg);
+      svgLine(1,staffTop,1,tabTop+TAB_H,'#1a1a2e',1.5,svg);
     }
 
+    // Marqueur de changement de page (tous les ~900px de contenu)
+    if(!window._pageH) window._pageH=0;
+    window._pageH += rowH + 4;
+    const isPageBreak = rowGroups[r-1]?.isPage || (r>0 && window._pageH > 1020);
+    if(r>0 && isPageBreak){
+      const pg=document.createElement('div');
+      pg.style.cssText='width:100%;text-align:center;font-size:9px;color:#aaa;'+
+        'border-bottom:1px dashed #c8c0aa;padding-bottom:4px;margin:4px 0 8px;letter-spacing:.1em';
+      pg.textContent='— — — — — — — PAGE — — — — — —';
+      mc.appendChild(pg);
+      window._pageH=rowH;
+    }
     rms.forEach((m,mi)=>{
       const globalMi = r*MPR+mi;
       const ctx = getMeasureCtx(globalMi);
@@ -1365,7 +1404,8 @@ function computePAD(m, globalMi, partMeasures, SP, isFirstInRow, isVeryFirst){
   if(showClef)  PAD += SP*2.4;
   if(showKey && numAccid>0) PAD += numAccid*(SP*0.72)+SP*0.25;
   if(showTime)  PAD += SP*2.8;
-  return Math.max(PAD, isFirstInRow ? 24 : 22);
+  const minPAD = isFirstInRow ? Math.round(24*(score.staffScale||1)) : Math.round(22*(score.staffScale||1));
+  return Math.max(PAD, minPAD);
 }
 
 
@@ -1614,6 +1654,50 @@ function renderMeas(svg,m,mX,mW,staffTop,tabTop,SP,TSP,ns,showS,showT,isVeryFirs
   // X = naX + (position / totD) * naW
   function slotToX(pos){ return naX + Math.max(0, Math.min((pos / totD) * naW, naW - 8)); }
 
+  // ── Rythme au-dessus de la TAB si portée masquée ──
+  if(!showS && showT){
+    const RY = tabTop - 4; // ligne de référence du rythme
+    const RH = 16;         // hauteur de la zone rythme
+    const seenPos=new Set();
+    m.notes.filter(n=>!n.isRest).forEach(n=>{
+      if(seenPos.has(n.position)) return;
+      seenPos.add(n.position);
+      const nx = slotToX(n.position);
+      const dur = n.duration;
+      const filled = !['whole','half'].includes(dur);
+      const headY = RY - 2;
+      const headX = nx;
+      // Tête de note (ellipse)
+      svgEl('ellipse',{cx:headX,cy:headY,rx:4,ry:2.8,
+        fill:filled?'#333':'none',stroke:'#333','stroke-width':0.8,
+        transform:`rotate(-20,${headX},${headY})`},svg);
+      // Hampe (toutes sauf ronde)
+      if(dur!=='whole'){
+        svgEl('line',{x1:headX+3.5,y1:headY,x2:headX+3.5,y2:headY-RH+4,
+          stroke:'#333','stroke-width':0.9},svg);
+      }
+      // Point si pointée
+      if(n.dotted) svgEl('circle',{cx:headX+8,cy:headY-1,r:1.2,fill:'#333'},svg);
+      // Crochet(s) pour croches/doubles
+      if(dur==='eighth'||dur==='16th'||dur==='32nd'){
+        const x0=headX+3.5, y0=headY-RH+4;
+        svgEl('path',{d:`M${x0},${y0} C${x0+5},${y0+3} ${x0+5},${y0+6} ${x0+2},${y0+8}`,
+          stroke:'#333','stroke-width':0.9,fill:'none'},svg);
+      }
+      if(dur==='16th'||dur==='32nd'){
+        const x0=headX+3.5, y0=headY-RH+8;
+        svgEl('path',{d:`M${x0},${y0} C${x0+5},${y0+3} ${x0+5},${y0+6} ${x0+2},${y0+8}`,
+          stroke:'#333','stroke-width':0.9,fill:'none'},svg);
+      }
+      // Silence = tiret
+    });
+    // Silences
+    m.notes.filter(n=>n.isRest&&!seenPos.has(n.position)).forEach(n=>{
+      const nx=slotToX(n.position);
+      svgEl('line',{x1:nx-4,y1:RY-8,x2:nx+4,y2:RY-8,stroke:'#666','stroke-width':1.5},svg);
+    });
+  }
+
   Object.keys(byPos).sort((a,b)=>a-b).forEach(posKey=>{
     const group=byPos[posKey];
     const nx=slotToX(parseInt(posKey));
@@ -1708,18 +1792,15 @@ function drawStaff(svg,m,mX,mW,staffTop,SP,naX,naW,PAD,isFirstInRow=false,isVery
   let curX = mX + 4;
 
   // ── 1. Barre gauche ──
-  const barX0 = curX;
-  if(m.repeatStart){
-    // Barre fine + barre épaisse + points
-    svgLine(barX0,   staffTop, barX0,   staffTop+SP*4, '#1a1a2e', 1.2, svg);
-    svgLine(barX0+4, staffTop, barX0+4, staffTop+SP*4, '#1a1a2e', 3.5, svg);
-    // Points entre la barre épaisse et la clef
-    const dotX = barX0 + 10;
-    svgDot(dotX, staffTop+SP*1.5, 2.5, '#1a1a2e', svg);
-    svgDot(dotX, staffTop+SP*2.5, 2.5, '#1a1a2e', svg);
-    curX = barX0 + 16;
+  // La barre initiale (non-reprise) est toujours fine, à mX+2
+  // Pour une reprise, on dessine épaisse+fine+points APRÈS la clef/armure/chiffrage
+  // On pose ici la barre fine de base, sauf si reprise (elle sera dessinée plus loin)
+  const barX0 = mX + 2;
+  if(!m.repeatStart){
+    svgLine(barX0, staffTop, barX0, staffTop+SP*4, '#1a1a2e', 1.0, svg);
+    curX = barX0 + 5;
   } else {
-    svgLine(barX0, staffTop, barX0, staffTop+SP*4, '#1a1a2e', 1.2, svg);
+    // On réserve la place — la barre de reprise sera tracée après la clef/armure/chiffrage
     curX = barX0 + 5;
   }
 
@@ -1743,7 +1824,7 @@ function drawStaff(svg,m,mX,mW,staffTop,SP,naX,naW,PAD,isFirstInRow=false,isVery
         : staffTop + SP*3.0;       // Ut : barre centrale
     const clefSym = dispClef==='F' ? '\u{1D122}' : dispClef==='C' ? '\u{1D121}' : '\u{1D11E}';
     svgEl('text',{x:curX, y:clefBaseY, 'font-size':clefFS, fill:'#1a1a2e',
-      'font-family':"Bravura,'Bravura Text',Leland,FreeSerif,serif",
+      'font-family':"'Bravura','Bravura Text',Leland,FreeSerif,Georgia,'Times New Roman',serif",
       'text-anchor':'start','dominant-baseline':'auto'}, svg).textContent = clefSym;
     if((ctx.clefOctave||0)!==0){
       const refLineY = staffTop + SP*(5-dispLine);
@@ -1791,8 +1872,28 @@ function drawStaff(svg,m,mX,mW,staffTop,SP,naX,naW,PAD,isFirstInRow=false,isVery
       .textContent=String(ctx.timeDen||4);
   }
 
+  // ── 4b. Barre de reprise gauche — dessinée APRÈS clef/armure/chiffrage ──
+  if(m.repeatStart){
+    // barre fine initiale (à mX+2, déjà intégrée dans les lignes horizontales)
+    svgLine(mX+2, staffTop, mX+2, staffTop+SP*4, '#1a1a2e', 1.0, svg);
+    // épaisse juste avant la zone notes
+    const repX = curX + 1;
+    svgLine(repX,   staffTop, repX,   staffTop+SP*4, '#1a1a2e', 3.5, svg);
+    svgLine(repX+5, staffTop, repX+5, staffTop+SP*4, '#1a1a2e', 1.0, svg);
+    svgDot(repX+10, staffTop+SP*1.5, 2.0, '#1a1a2e', svg);
+    svgDot(repX+10, staffTop+SP*2.5, 2.0, '#1a1a2e', svg);
+    curX = repX + 14;
+  }
+
   // ── 5. Barre droite de reprise ──
-  if(m.repeatEnd) barLine(svg, mX+mW-1, staffTop, staffTop+SP*4, false, true);
+  if(m.repeatEnd){
+    // Barre de reprise fin : points + fine + épaisse (de gauche à droite)
+    const rx = mX+mW-1;
+    svgDot(rx-10, staffTop+SP*1.5, 2.0, '#1a1a2e', svg);
+    svgDot(rx-10, staffTop+SP*2.5, 2.0, '#1a1a2e', svg);
+    svgLine(rx-5, staffTop, rx-5, staffTop+SP*4, '#1a1a2e', 1.0, svg); // fine
+    svgLine(rx,   staffTop, rx,   staffTop+SP*4, '#1a1a2e', 3.5, svg); // épaisse
+  }
 
   // ── 6. Volta bracket (reprise numérotée) ──
   if(m.volta){
@@ -1818,17 +1919,11 @@ function drawStaff(svg,m,mX,mW,staffTop,SP,naX,naW,PAD,isFirstInRow=false,isVery
 }
 
 function drawTabLines(svg,m,mX,mW,tabTop,TSP,ns,naX,naW,isFirstInRow=false){
-  const startX = mX+(isFirstInRow?6:2);
-  if(m.repeatStart){
-    svgLine(startX,   tabTop, startX,   tabTop+(ns-1)*TSP, '#1a1a2e', 1.2, svg);
-    svgLine(startX+4, tabTop, startX+4, tabTop+(ns-1)*TSP, '#1a1a2e', 3.5, svg);
-    // Points juste après la barre épaisse
-    const tdotX = startX + 10;
-    svgDot(tdotX, tabTop+(ns-1)*TSP*0.33, 2.5, '#1a1a2e', svg);
-    svgDot(tdotX, tabTop+(ns-1)*TSP*0.67, 2.5, '#1a1a2e', svg);
-  } else {
-    barLine(svg,startX,tabTop,tabTop+(ns-1)*TSP,false,false);
-  }
+  const startX = mX + 2;
+  const tabBot  = tabTop+(ns-1)*TSP;
+
+  // Barre gauche de base (fine)
+  svgLine(startX, tabTop, startX, tabBot, '#1a1a2e', 1.0, svg);
 
   for(let s=0;s<ns;s++){
     svgLine(startX,tabTop+s*TSP,mX+mW,tabTop+s*TSP,'#444444',0.7,svg);
@@ -1842,7 +1937,22 @@ function drawTabLines(svg,m,mX,mW,tabTop,TSP,ns,naX,naW,isFirstInRow=false){
     svgText('B',mX+14,ty+18,8,'#777','middle','700',svg);
   }
 
-  if(m.repeatEnd) barLine(svg,mX+mW-1,tabTop,tabTop+(ns-1)*TSP,false,true);
+  // Barre de reprise gauche : alignée sur naX (après le label TAB / clef portée)
+  if(m.repeatStart){
+    const repX = naX - 13;
+    svgLine(repX,   tabTop, repX,   tabBot, '#1a1a2e', 3.5, svg);
+    svgLine(repX+5, tabTop, repX+5, tabBot, '#1a1a2e', 1.0, svg);
+    svgDot(repX+10, tabTop+(ns-1)*TSP*0.33, 2.0, '#1a1a2e', svg);
+    svgDot(repX+10, tabTop+(ns-1)*TSP*0.67, 2.0, '#1a1a2e', svg);
+  }
+
+  if(m.repeatEnd){
+    const rx = mX+mW-1;
+    svgDot(rx-10, tabTop+(ns-1)*TSP*0.33, 2.0, '#1a1a2e', svg);
+    svgDot(rx-10, tabTop+(ns-1)*TSP*0.67, 2.0, '#1a1a2e', svg);
+    svgLine(rx-5, tabTop, rx-5, tabTop+(ns-1)*TSP, '#1a1a2e', 1.0, svg);
+    svgLine(rx,   tabTop, rx,   tabTop+(ns-1)*TSP, '#1a1a2e', 3.5, svg);
+  }
 
   const hit=svgRect(naX,tabTop-4,naW,(ns-1)*TSP+8,'transparent','none',svg);
   hit.setAttribute('cursor','crosshair');
@@ -1940,9 +2050,9 @@ function drawNoteStaff(svg,n,nX,staffTop,SP,isSel,mi,ni,isChord=false,clef='G',c
   const fc=filled?nc:(isSel?'rgba(30,144,255,0.15)':'#faf8f3');
 
   // Tête de note — dimensions et position
-  const HEAD_CX = nX+4;
-  const HEAD_RX = 5;
-  const HEAD_RY = 3.5;
+  const HEAD_CX = nX+3;
+  const HEAD_RX = 3.2;
+  const HEAD_RY = 2.2;
 
   // Alteration — ne pas afficher si couverte par l'armure effective
   if(n.alter!==0){
@@ -1964,7 +2074,7 @@ function drawNoteStaff(svg,n,nX,staffTop,SP,isSel,mi,ni,isChord=false,clef='G',c
 
   // Tête de note (cliquable)
   const head=svgEl('ellipse',{cx:HEAD_CX,cy:nY,rx:HEAD_RX,ry:HEAD_RY,
-    fill:fc,stroke:nc,'stroke-width':1.2,cursor:'pointer'},svg);
+    fill:fc,stroke:nc,'stroke-width':1.0,cursor:'pointer'},svg);
   head.addEventListener('click',e=>{
     e.stopPropagation();
     if(partIdx!==null && partIdx!==score.activePart){
@@ -2092,8 +2202,8 @@ function drawNoteTab(svg,n,nX,tabTop,TSP,ns,isSel,mi,ni,isChord=false,partIdx=nu
 
   svgRect(nX-bw/2+3,ly-5,bw,10,bgFill,'none',svg);
 
-  const te=svgEl('text',{x:nX+3,y:ly+4,
-    'font-size':10,fill:nc,'text-anchor':'middle',
+  const te=svgEl('text',{x:nX+3,y:ly+3,
+    'font-size':7,fill:nc,'text-anchor':'middle',
     'font-weight':'500','font-family':"'JetBrains Mono',monospace",
     cursor:'pointer'},svg);
   te.textContent=fstr;
@@ -3190,6 +3300,8 @@ function syncPartitionPanel(){
   // Instrument
   const instr=document.getElementById('instr-sel');
   if(instr) instr.value=score.instr||'guitar';
+  const ss=document.getElementById('staff-scale-r');
+  if(ss){ ss.value=score.staffScale||1.0; document.getElementById('staff-scale-lbl').textContent=Math.round((score.staffScale||1)*100)+'%'; }
   const lf=document.getElementById('lyric-font'); if(lf) lf.value=score.lyricFont||'Crimson Pro';
   const ls=document.getElementById('lyric-size'); if(ls){ ls.value=score.lyricSize||10; document.getElementById('lyric-size-lbl').textContent=(score.lyricSize||10)+'px'; }
 }
@@ -3224,6 +3336,20 @@ function applySystemsPerPage(){
   // systemH ≈ 1047/spp → scale = systemH_naturel / (1047/spp)
   // On laisse render() calculer et appeler adjustZoomToSPP()
 }
+function stepZoom(delta){
+  const cur = parseInt(document.getElementById('zoom-r').value)||100;
+  const nv  = Math.max(40, Math.min(200, cur+delta));
+  document.getElementById('zoom-r').value = nv;
+  setZoom(nv);
+}
+function stepStaffScale(delta){
+  const cur = parseFloat(document.getElementById('staff-scale-r').value)||1.0;
+  const nv  = Math.max(0.4, Math.min(2.0, Math.round((cur+delta)*10)/10));
+  document.getElementById('staff-scale-r').value = nv;
+  score.staffScale = nv;
+  document.getElementById('staff-scale-lbl').textContent = Math.round(nv*100)+'%';
+  render();
+}
 function adjustZoomToSPP(){
   const spp=score.systemsPerPage;
   if(!spp) return;
@@ -3239,8 +3365,11 @@ function adjustZoomToSPP(){
   document.getElementById('zoom-r').value=pct;
 }
 function setZoom(v){
+  v=Math.round(v);
   document.getElementById('a4-wrap').style.transform=`scale(${v/100})`;
   document.getElementById('zoom-chip').textContent=`${v}%`;
+  const zr=document.getElementById('zoom-r'); if(zr) zr.value=v;
+  const zs=document.getElementById('zoom-chip-side'); if(zs) zs.textContent=`${v}%`;
 }
 function toggleSidebar(){
   const sb=document.getElementById('sidebar');
@@ -3319,7 +3448,7 @@ function mkMFromCtx(ctx, num){
     clef:null, clefOctave:null, clefLine:null,
     timeNum:null, timeDen:null, key:null,
     tempo:null, tempoText:'',
-    repeatStart:false, repeatEnd:false, chordSym:'', segno:false, coda:false, volta:null, rehearsal:null, beamGrouping:null};
+    repeatStart:false, repeatEnd:false, chordSym:'', segno:false, coda:false, volta:null, rehearsal:null, beamGrouping:null, newSystem:false, newPage:false};
   // On ne stocke PAS les valeurs explicitement → elles seront héritées via getMeasureCtx
   fillMeasureRests(m);
   return m;
@@ -3389,7 +3518,9 @@ function confirmNew(){
   m0new.timeNum=tn; m0new.timeDen=td; m0new.key=0; m0new.tempo=bpm;
   selEl=null; selZone='staff'; cursorPos={mi:0,pos:0};
   undoStack=[]; redoStack=[];
-  isDirty=false; syncPartitionPanel(); updateHeader(); updatePartSelector(); closeDlg('dlg-new'); render();
+  isDirty=false; syncPartitionPanel(); updateHeader(); updatePartSelector();
+  buildRehearsalList();   // vider la liste des morceaux
+  closeDlg('dlg-new'); render();
 }
 function openFile(){
   if(isDirty && undoStack.length>0){
@@ -3397,7 +3528,22 @@ function openFile(){
   }
   const inp=document.getElementById('file-inp');
   inp.value='';
-  inp.click();
+  // Quitter le plein écran avant d'ouvrir le sélecteur de fichiers
+  // (sinon certains navigateurs ferment le plein écran et perdent le contexte)
+  const doClick=()=>{ inp.click(); };
+  if(document.fullscreenElement||document.webkitFullscreenElement){
+    const onExit=()=>{
+      document.removeEventListener('fullscreenchange',onExit);
+      document.removeEventListener('webkitfullscreenchange',onExit);
+      setTimeout(doClick,80);
+    };
+    document.addEventListener('fullscreenchange',onExit);
+    document.addEventListener('webkitfullscreenchange',onExit);
+    if(document.exitFullscreen) document.exitFullscreen();
+    else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+  } else {
+    doClick();
+  }
 }
 function loadFile(e){
   const f=e.target.files[0]; if(!f) return;
@@ -3490,9 +3636,69 @@ function parseMXML(xml){
       const snd=mel.querySelector('sound[tempo]');
       if(snd) m.tempo=parseInt(snd.getAttribute('tempo'));
       // Clef : stocker seulement si explicitement définie dans cette mesure
-      // Rehearsal marks (titres de morceaux)
-      const rehEl=mel.querySelector('direction rehearsal');
-      if(rehEl && rehEl.textContent) m.rehearsal=rehEl.textContent.trim();
+      // Fins de ligne/page depuis <print>
+      const printEl=mel.querySelector('print');
+      if(printEl){
+        if(printEl.getAttribute('new-system')==='yes') m.newSystem=true;
+        if(printEl.getAttribute('new-page')==='yes') m.newPage=true;
+      }
+      // Barlines : reprise et volta (ending)
+      mel.querySelectorAll('barline').forEach(bl=>{
+        const loc=bl.getAttribute('location')||'right';
+        // Reprise
+        const rep=bl.querySelector('repeat');
+        if(rep){
+          if(rep.getAttribute('direction')==='forward') m.repeatStart=true;
+          if(rep.getAttribute('direction')==='backward') m.repeatEnd=true;
+        }
+        // Volta bracket
+        const ending=bl.querySelector('ending');
+        if(ending){
+          const num=parseInt(ending.getAttribute('number')||'1');
+          const type=ending.getAttribute('type');
+          if(type==='start'){
+            m.volta={num, start:true, stop:false};
+          } else if(type==='stop'||type==='discontinue'){
+            if(!m.volta) m.volta={num, start:false, stop:true};
+            else m.volta.stop=true;
+          }
+        }
+        // Bar-style : light-heavy = fin reprise, heavy-light = début reprise
+        const style=bl.querySelector('bar-style');
+        if(style){
+          if(style.textContent==='light-heavy'&&loc==='right') m.repeatEnd=true;
+          if(style.textContent==='heavy-light'&&loc==='left') m.repeatStart=true;
+        }
+      });
+      // Rehearsal marks — essayer plusieurs méthodes selon le navigateur
+      {
+        let rehText=null;
+        // Méthode 1: querySelectorAll sur direction-type
+        try{
+          mel.querySelectorAll('direction-type rehearsal, direction rehearsal, rehearsal').forEach(r=>{
+            if(!rehText && r.textContent) rehText=r.textContent.trim();
+          });
+        }catch(e){}
+        // Méthode 2: getElementsByTagName
+        if(!rehText){
+          try{
+            const tags=mel.getElementsByTagName('rehearsal');
+            if(tags.length>0) rehText=(tags[0].textContent||'').trim();
+          }catch(e){}
+        }
+        // Méthode 3: parcours manuel des direction
+        if(!rehText){
+          try{
+            Array.from(mel.getElementsByTagName('direction')).forEach(d=>{
+              if(rehText) return;
+              Array.from(d.getElementsByTagName('rehearsal')).forEach(r=>{
+                if(!rehText && r.textContent) rehText=r.textContent.trim();
+              });
+            });
+          }catch(e){}
+        }
+        if(rehText) m.rehearsal=rehText;
+      }
       // Direction words importants (tempo text déjà géré)
       const clefSign=mel.querySelector('clef sign');
       const clefOctEl=mel.querySelector('clef clef-octave-change');
@@ -3553,6 +3759,22 @@ function parseMXML(xml){
     });
   });
 
+  // ── Corriger les volta stops (ending stop souvent absent dans les fichiers) ──
+  score.parts.forEach(p=>{
+    p.measures.forEach((m,i)=>{
+      if(m.volta?.start && !m.volta.stop){
+        // Chercher la fin du volta : prochaine mesure avec volta.start ou fin de partition
+        let j=i+1;
+        while(j<p.measures.length && !p.measures[j].volta?.start) j++;
+        // La dernière mesure du groupe prend le stop
+        if(j>i+1 && !p.measures[j-1].volta?.stop){
+          p.measures[j-1].volta={...p.measures[j-1].volta||{num:m.volta.num}, stop:true};
+        } else if(j===i+1){
+          m.volta.stop=true; // volta d'une seule mesure
+        }
+      }
+    });
+  });
   // ── Synchroniser score.measures sur la piste active ──
   score.activePart=0;
   score.measures=score.parts[0]?.measures||[];
@@ -3890,9 +4112,9 @@ function renderMultiPart(mc){
   const PAGE_W=718;
   const MPR=score.mpr||2;
   const MW=PAGE_W/MPR;
-  const SP=11;
+  const SP=Math.round(7*(score.staffScale||1.0));
   const STAFF_H=SP*4;
-  const TSP=13;
+  const TSP=Math.round(8*(score.staffScale||1.0));
   const TOP_PAD=40;
   const PART_GAP=24;
   const BOT_PAD=14;
@@ -4019,12 +4241,34 @@ function renderMultiPart(mc){
 
   const totalH=mergedTabY+(score.mergeTab&&tabParts.length>0?mergedTabH+BOT_PAD:BOT_PAD);
   const numMeasures=Math.max(...parts.map(p=>p.measures.length));
-  const rows=Math.ceil(numMeasures/MPR);
+  // Construire rowGroups avec saut aux rehearsal marks
+  const rowGroups_m=[];
+  {
+    let buf=[];
+    for(let i=0;i<numMeasures;i++){
+      const m0=parts[0].measures[i];
+      if((m0?.rehearsal||(m0?.newSystem&&score.useXmlBreaks!==false))&&buf.length>0){
+        rowGroups_m.push({start:buf[0],count:buf.length});buf=[];
+      }
+      buf.push(i);
+      if(buf.length>=MPR){rowGroups_m.push({start:buf[0],count:buf.length});buf=[];}
+    }
+    if(buf.length) rowGroups_m.push({start:buf[0],count:buf.length});
+  }
+  const rows=rowGroups_m.length;
 
   for(let r=0;r<rows;r++){
+    const {start:rStart, count:rCount}=rowGroups_m[r];
     // Calculer les rmsIndices de cette rangée pour le gap dynamique par piste
     const rmsIndices=[];
-    for(let ri=r*MPR;ri<Math.min((r+1)*MPR,numMeasures);ri++) rmsIndices.push(ri);
+    for(let ri=rStart;ri<Math.min(rStart+rCount,numMeasures);ri++) rmsIndices.push(ri);
+    // Séparateur si nouveau morceau
+    const m0=parts[0].measures[rStart];
+    if((m0?.rehearsal||(m0?.newSystem&&score.useXmlBreaks!==false))&&r>0){
+      const sep=document.createElement('div');
+      sep.style.cssText='width:100%;height:3px;background:linear-gradient(to right,#c8c0aa,#e8e4dc,#c8c0aa);margin:20px 0 6px;display:block';
+      mc.appendChild(sep);
+    }
     const partYs=buildPartYs(rmsIndices);
 
     // Hauteur SVG pour cette rangée (basée sur les gaps dynamiques)
@@ -4063,10 +4307,10 @@ function renderMultiPart(mc){
         svgEl('path',{d:`M6,${y1} C2,${y1-2} 0,${y1+4} 4,${y1+10}`,'stroke':'#1a1a2e','stroke-width':1.5,fill:'none'},svg);
         svgEl('path',{d:`M6,${y2} C2,${y2+2} 0,${y2-4} 4,${y2-10}`,'stroke':'#1a1a2e','stroke-width':1.5,fill:'none'},svg);
         // Barres de mesure prolongées sur toute la hauteur du système
-        for(let ci=0;ci<=MPR;ci++){
+        for(let ci=0;ci<=rCount;ci++){
           const bx=ci*MW;
-          if(ci<MPR&&(r*MPR+ci)>=numMeasures) break;
-          svgLine(bx,y1,bx,y2,'#1a1a2e',ci===0||ci===MPR?1.8:1.0,svg);
+          if(ci<rCount&&(rStart+ci)>=numMeasures) break;
+          svgLine(bx,y1,bx,y2,'#1a1a2e',ci===0||ci===rCount?1.8:1.0,svg);
         }
       }
     }
@@ -4082,8 +4326,8 @@ function renderMultiPart(mc){
     }
 
     // ── Mesures × pistes ──
-    for(let mi_=0;mi_<MPR;mi_++){
-      const globalMi=r*MPR+mi_;
+    for(let mi_=0;mi_<rCount;mi_++){
+      const globalMi=rStart+mi_;
       if(globalMi>=numMeasures) break;
       const mX=mi_*MW;
 
@@ -4570,6 +4814,7 @@ function buildRehearsalList(){
     .map((m,i)=>({mi:i, title:m.rehearsal, num:m.num}))
     .filter(r=>r.title);
 
+  console.log('Rehearsals found:', rehearsals.length, rehearsals.slice(0,3));
   if(rehearsals.length===0){ sec.style.display='none'; return; }
 
   sec.style.display='block';
