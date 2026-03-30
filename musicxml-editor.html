@@ -169,6 +169,7 @@ pre#xml-out{font-family:'JetBrains Mono',monospace;font-size:10px;background:#1e
     <button class="tbt" onclick="saveFile()">💾 Enregistrer</button>
     <button class="tbt" onclick="saveFileAs()">💾 Enregistrer sous…</button>
     <button class="tbt" onclick="window.print()">🖨 Imprimer</button>
+    <button class="tbt" onclick="exportPDF()">📄 Créer PDF</button>
     <button class="tbt" onclick="showXML()">‹/› MusicXML</button>
   </div>
 
@@ -967,6 +968,47 @@ function deleteNoteReplace(mi, ni){
   render(); updateNavHint();
 }
 
+function resetAllUI(){
+  // Remettre toutes les options d'affichage à leur état initial
+  score.staffScale = 1.0;
+  score.mpr        = 4;
+  score.systemsPerPage = 0;
+  score.mergeTab   = false;
+  score.useXmlBreaks = true;
+  score.lyricFont  = 'Crimson Pro';
+  score.lyricSize  = 10;
+
+  // Checkboxes affichage
+  const os=document.getElementById('only-staff'); if(os) os.checked=false;
+  const ot=document.getElementById('only-tab');   if(ot) ot.checked=false;
+  const mc=document.getElementById('merge-tab-chk'); if(mc) mc.checked=false;
+  const ub=document.getElementById('use-xml-breaks'); if(ub) ub.checked=true;
+
+  // Sélecteurs
+  const mpr=document.getElementById('mpr-sel'); if(mpr) mpr.value=4;
+  const spp=document.getElementById('spp-sel'); if(spp) spp.value=0;
+
+  // Zoom
+  setZoom(100);
+
+  // Taille portée
+  const sr=document.getElementById('staff-scale-r'); if(sr) sr.value=1.0;
+  const sl=document.getElementById('staff-scale-lbl'); if(sl) sl.textContent='100%';
+
+  // Paroles
+  const lf=document.getElementById('lyric-font'); if(lf) lf.value='Crimson Pro';
+  const ls=document.getElementById('lyric-size'); if(ls){ ls.value=10; const ll=document.getElementById('lyric-size-lbl'); if(ll) ll.textContent='10px'; }
+
+  // Instrument
+  const ins=document.getElementById('instr-sel'); if(ins) ins.value='guitar';
+
+  // Boutons reprise : tout remettre à zéro
+  syncRepeatButtons(null);
+
+  // Zone active
+  curString=6; curFret=0; activeZone='tab'; tabInput={fretStr:''};
+  syncPitchFromTab();
+}
 function initScore(){
   score.measures=[];
   score.parts=[];
@@ -1342,10 +1384,7 @@ function render(){
       style:'display:block;margin-bottom:4px;overflow:visible'
     });
 
-    // system bracket — accolade fine à gauche des barres de portée/TAB
-    if(showS&&showT){
-      svgLine(1,staffTop,1,tabTop+TAB_H,'#1a1a2e',1.5,svg);
-    }
+    // (pas de bracket système — la barre de mesure suffit)
 
     // Marqueur de changement de page (tous les ~900px de contenu)
     if(!window._pageH) window._pageH=0;
@@ -1373,11 +1412,7 @@ function render(){
       renderMeas(svg,m,mi*MW,MW,staffTop,tabTop,SP,TSP,NS_,showS,showT,mi===0&&r===0,mi===0,ctx,showClefChange,showTimeChange,showKeyChange);
     });
 
-    // final right bar line
-    const rx=rms.length*MW;
-    if(showS) svgLine(rx,staffTop,rx,staffTop+STAFF_H,'#1a1a2e',1.5,svg);
-    if(showT) svgLine(rx,tabTop,  rx,tabTop+TAB_H,  '#1a1a2e',1.5,svg);
-
+    // La barre droite finale est maintenant dessinée par chaque mesure
     mc.appendChild(svg);
 
     // Séparateur de page
@@ -1399,12 +1434,15 @@ function computePAD(m, globalMi, partMeasures, SP, isFirstInRow, isVeryFirst){
   const showKey  = isVeryFirst || isFirstInRow || (globalMi>0 && ctx.key!==(prev?.key??0));
   const showTime = isVeryFirst || isFirstInRow || (globalMi>0 && (ctx.timeNum!==prev?.timeNum||ctx.timeDen!==prev?.timeDen));
   const numAccid = Math.abs(ctx.key||0);
+  const REP_W = 16; // largeur barre reprise (épaisse+fine+points+marge) — doit correspondre au dessin
   let PAD = 9;
-  if(m.repeatStart) PAD += 12;
+  if(m.repeatStart) PAD += REP_W;
   if(showClef)  PAD += SP*2.4;
   if(showKey && numAccid>0) PAD += numAccid*(SP*0.72)+SP*0.25;
   if(showTime)  PAD += SP*2.8;
-  const minPAD = isFirstInRow ? Math.round(24*(score.staffScale||1)) : Math.round(22*(score.staffScale||1));
+  // minPAD tient compte de la barre de reprise si présente
+  const base = isFirstInRow ? Math.round(24*(score.staffScale||1)) : Math.round(22*(score.staffScale||1));
+  const minPAD = m.repeatStart ? base + REP_W : base;
   return Math.max(PAD, minPAD);
 }
 
@@ -1420,7 +1458,8 @@ function drawBeams(svg, m, naX, naW, totD, staffTop, SP, eff_clef, eff_clefOctav
     const step_=(STEPN[n.name]||0)+(n.octave-4)*7-(eff_clefOctave||0)*7;
     const nY_=midLineY_-(step_-midRef_)*(SP/2);
     const up_=n.stemDir!=='down';
-    const sx_=up_?nx_+8.4:nx_-0.4; // aligné avec drawNoteStaff
+    // HEAD_CX=nx+3, HEAD_RX=3.2 → sx_up=nx+3+3.2-0.6=nx+5.6, sx_dn=nx+3-3.2+0.6=nx+0.4
+    const sx_=up_?nx_+5.6:nx_+0.4;
     const sy2_=nY_+(up_?-(SP*2.7):SP*2.7);
     const nFlags_={'eighth':1,'16th':2,'32nd':3,'64th':4}[n.duration]||1;
     beamNotes.push({n,sx:sx_,sy2:sy2_,up:up_,flags:nFlags_,pos:n.position});
@@ -1784,56 +1823,78 @@ function drawStaff(svg,m,mX,mW,staffTop,SP,naX,naW,PAD,isFirstInRow=false,isVery
   const dispKey=ctx.key||0;
   const numAccid=Math.abs(dispKey);
 
-  // 5 lignes horizontales
+  // 5 lignes horizontales — commencent à mX (pas de gap entre mesures)
   for(let i=0;i<5;i++)
-    svgLine(mX+2, staffTop+i*SP, mX+mW, staffTop+i*SP, '#2a2a2a', 0.8, svg);
+    svgLine(mX, staffTop+i*SP, mX+mW, staffTop+i*SP, '#2a2a2a', 0.8, svg);
 
   // Curseur X de dessin
   let curX = mX + 4;
 
   // ── 1. Barre gauche ──
-  // La barre initiale (non-reprise) est toujours fine, à mX+2
-  // Pour une reprise, on dessine épaisse+fine+points APRÈS la clef/armure/chiffrage
-  // On pose ici la barre fine de base, sauf si reprise (elle sera dessinée plus loin)
-  const barX0 = mX + 2;
-  if(!m.repeatStart){
+  // On dessine la barre gauche seulement sur la première mesure de la rangée (isFirstInRow)
+  // Les mesures intermédiaires n'ont pas besoin de barre gauche — la barre droite
+  // de la mesure précédente fait office de séparateur
+  const barX0 = mX + 1;
+  if(isFirstInRow && !m.repeatStart){
     svgLine(barX0, staffTop, barX0, staffTop+SP*4, '#1a1a2e', 1.0, svg);
     curX = barX0 + 5;
+  } else if(!isFirstInRow && !m.repeatStart){
+    // Barre intermédiaire fine (tracée par la mesure précédente en barre droite, on saute)
+    curX = mX + 3;
   } else {
-    // On réserve la place — la barre de reprise sera tracée après la clef/armure/chiffrage
     curX = barX0 + 5;
   }
 
   // ── 2. Clef ──
   const showClef = isFirstInRow || showClefChange;
   if(showClef){
-    // Bravura gClef : la spirale (qui encercle Sol4 = ligne 2 du bas) est à ~60% du haut du glyph
-    // Pour font-size=4SP et baseline à Y, la spirale est à Y - 4SP*0.40 = Y - 1.6SP
-    // On veut la spirale sur staffTop+SP*3 (ligne 2 du bas = ligne 4 du haut → staffTop+SP*1... non)
-    // Ligne 2 du bas = 4e ligne depuis le haut = staffTop + SP*3
-    // clefBaseY tel que spirale = staffTop+SP*3 → clefBaseY = staffTop+SP*3 + 4SP*0.60 = staffTop+SP*5.4
-    // Mais ça sort de la portée... Bravura a ses propres métriques.
-    // En pratique pour Bravura à font-size=4SP :
-    // La clef remplit toute la hauteur de la portée + dépasse un peu en bas.
-    // baseline = staffTop + SP*4 + SP*0.4  (légèrement sous la 1ère ligne)
-    const clefFS = SP * 4;
-    const clefBaseY = dispClef==='G'
-      ? staffTop + SP*3.5          // Sol : spirale sur ligne 2 du bas (2e depuis bas = staffTop+3SP)
-      : dispClef==='F'
-        ? staffTop + SP*2.2        // Fa : points sur ligne 4
-        : staffTop + SP*3.0;       // Ut : barre centrale
-    const clefSym = dispClef==='F' ? '\u{1D122}' : dispClef==='C' ? '\u{1D121}' : '\u{1D11E}';
-    svgEl('text',{x:curX, y:clefBaseY, 'font-size':clefFS, fill:'#1a1a2e',
-      'font-family':"'Bravura','Bravura Text',Leland,FreeSerif,Georgia,'Times New Roman',serif",
-      'text-anchor':'start','dominant-baseline':'auto'}, svg).textContent = clefSym;
+    const S = SP;
+    const cx0 = curX + 1;
+
+    if(dispClef === 'G'){
+      const lineY = staffTop + S * (5 - (dispLine||2));
+      const fs = S * 4.2;
+      const gy = lineY + S * 0.2;
+      let defs=svg.querySelector('defs'); if(!defs){defs=document.createElementNS(NS,'defs');svg.insertBefore(defs,svg.firstChild);}
+      const clipId=`cc${m.num}g${Math.random().toString(36).slice(2,5)}`;
+      const cp=document.createElementNS(NS,'clipPath'); cp.setAttribute('id',clipId);
+      const cr=document.createElementNS(NS,'rect'); cr.setAttribute('x',cx0-1); cr.setAttribute('y',staffTop-S*1.5); cr.setAttribute('width',S*2.6); cr.setAttribute('height',S*7); cp.appendChild(cr); defs.appendChild(cp);
+      const g=svgEl('g',{'clip-path':`url(#${clipId})`},svg);
+      svgEl('text',{x:cx0,y:gy,'font-size':fs,fill:'#1a1a2e','font-family':"'Bravura','Bravura Text',FreeSerif,serif",'text-anchor':'start','dominant-baseline':'auto'},g).textContent='𝄞';
+
+    } else if(dispClef === 'F'){
+      const lineY = staffTop + S * (5 - (dispLine||4));
+      const fs = S * 3.8;
+      const gy = lineY + S * 2.0;
+      let defs=svg.querySelector('defs'); if(!defs){defs=document.createElementNS(NS,'defs');svg.insertBefore(defs,svg.firstChild);}
+      const clipId=`cc${m.num}f${Math.random().toString(36).slice(2,5)}`;
+      const cp=document.createElementNS(NS,'clipPath'); cp.setAttribute('id',clipId);
+      const cr=document.createElementNS(NS,'rect'); cr.setAttribute('x',cx0-1); cr.setAttribute('y',staffTop-S*0.5); cr.setAttribute('width',S*2.6); cr.setAttribute('height',S*5.5); cp.appendChild(cr); defs.appendChild(cp);
+      const g=svgEl('g',{'clip-path':`url(#${clipId})`},svg);
+      svgEl('text',{x:cx0,y:gy,'font-size':fs,fill:'#1a1a2e','font-family':"'Bravura','Bravura Text',FreeSerif,serif",'text-anchor':'start','dominant-baseline':'auto'},g).textContent='𝄢';
+
+    } else {
+      // Clef d'Ut : deux barres verticales
+      svgLine(cx0,          staffTop, cx0,          staffTop+S*4, '#1a1a2e', S*0.18, svg);
+      svgLine(cx0+S*0.35,   staffTop, cx0+S*0.35,   staffTop+S*4, '#1a1a2e', S*0.42, svg);
+    }
+
     if((ctx.clefOctave||0)!==0){
-      const refLineY = staffTop + SP*(5-dispLine);
-      const octLabel=Math.abs(ctx.clefOctave)===2?'15':'8';
-      const octY=ctx.clefOctave<0?refLineY+SP*2.4:refLineY-SP*2.8;
-      svgEl('text',{x:curX+SP*0.8,y:octY,'font-size':SP*1.0,fill:'#1a1a2e',
+      const octLabel = Math.abs(ctx.clefOctave)===2 ? '15' : '8';
+      let octY;
+      if(dispClef==='F'){
+        // Pour clef Fa, se baser sur lineY (position réelle de la ligne cible)
+        const lineY = staffTop + SP*(5-(dispLine||4));
+        // 8vb (octave<0) = sous la clef, 8va = au-dessus
+        octY = ctx.clefOctave<0 ? lineY + SP*2.0 : lineY - SP*1.0;
+      } else {
+        const refLineY = staffTop + SP*(5-dispLine);
+        octY = ctx.clefOctave<0 ? refLineY+SP*2.4 : refLineY-SP*2.8;
+      }
+      svgEl('text',{x:cx0+SP*0.8, y:octY, 'font-size':SP*1.0, fill:'#1a1a2e',
         'font-family':"'DM Sans',sans-serif",'font-weight':'700','text-anchor':'middle'},svg).textContent=octLabel;
     }
-    curX += SP*2.4; // largeur clef compacte
+    curX += SP*2.4;
   }
 
   // ── 3. Armure ──
@@ -1873,16 +1934,17 @@ function drawStaff(svg,m,mX,mW,staffTop,SP,naX,naW,PAD,isFirstInRow=false,isVery
   }
 
   // ── 4b. Barre de reprise gauche — dessinée APRÈS clef/armure/chiffrage ──
+  // REP_W = 16 doit correspondre à computePAD qui ajoute REP_W si repeatStart
   if(m.repeatStart){
-    // barre fine initiale (à mX+2, déjà intégrée dans les lignes horizontales)
+    const REP_W = 16; // doit correspondre à computePAD
+    // Barre fine à mX+2 (début système)
     svgLine(mX+2, staffTop, mX+2, staffTop+SP*4, '#1a1a2e', 1.0, svg);
-    // épaisse juste avant la zone notes
-    const repX = curX + 1;
+    // Barre épaisse + fine + points juste avant naX
+    const repX = naX - REP_W;
     svgLine(repX,   staffTop, repX,   staffTop+SP*4, '#1a1a2e', 3.5, svg);
     svgLine(repX+5, staffTop, repX+5, staffTop+SP*4, '#1a1a2e', 1.0, svg);
     svgDot(repX+10, staffTop+SP*1.5, 2.0, '#1a1a2e', svg);
     svgDot(repX+10, staffTop+SP*2.5, 2.0, '#1a1a2e', svg);
-    curX = repX + 14;
   }
 
   // ── 5. Barre droite de reprise ──
@@ -1912,7 +1974,12 @@ function drawStaff(svg,m,mX,mW,staffTop,SP,naX,naW,PAD,isFirstInRow=false,isVery
       'text-anchor':'start'},svg).textContent=v.num+'.';
   }
 
-  // ── 7. Zone de clic ──
+  // ── 7. Barre droite (séparateur entre mesures) ──
+  if(!m.repeatEnd){
+    svgLine(mX+mW, staffTop, mX+mW, staffTop+SP*4, '#1a1a2e', 1.0, svg);
+  }
+
+  // ── 8. Zone de clic ──
   const hit=svgRect(naX, staffTop-2, naW, SP*4+4, 'transparent','none', svg);
   hit.setAttribute('cursor','crosshair');
   hit.addEventListener('click', e => onStaffClick(e, m, svg, staffTop, SP, naX, naW));
@@ -1925,21 +1992,29 @@ function drawTabLines(svg,m,mX,mW,tabTop,TSP,ns,naX,naW,isFirstInRow=false){
   // Barre gauche de base (fine)
   svgLine(startX, tabTop, startX, tabBot, '#1a1a2e', 1.0, svg);
 
+  // Lignes horizontales : de mX à mX+mW (pas de gap)
   for(let s=0;s<ns;s++){
-    svgLine(startX,tabTop+s*TSP,mX+mW,tabTop+s*TSP,'#444444',0.7,svg);
+    svgLine(mX, tabTop+s*TSP, mX+mW, tabTop+s*TSP, '#444444', 0.7, svg);
+  }
+
+  // Barre gauche seulement sur première mesure de la rangée
+  if(isFirstInRow){
+    svgLine(startX, tabTop, startX, tabBot, '#1a1a2e', 1.0, svg);
   }
 
   if(isFirstInRow){
-    // TAB label vertical
-    const ty=tabTop+(ns-1)*TSP/2-8;
-    svgText('T',mX+14,ty,   8,'#777','middle','700',svg);
-    svgText('A',mX+14,ty+9, 8,'#777','middle','700',svg);
-    svgText('B',mX+14,ty+18,8,'#777','middle','700',svg);
+    // TAB label dans la marge gauche (entre mX+2 et naX)
+    const labelX = startX + (naX - startX) / 2;
+    const ty = tabTop + (ns-1)*TSP/2 - 8;
+    svgText('T', labelX, ty,    8, '#777', 'middle', '700', svg);
+    svgText('A', labelX, ty+9,  8, '#777', 'middle', '700', svg);
+    svgText('B', labelX, ty+18, 8, '#777', 'middle', '700', svg);
   }
 
   // Barre de reprise gauche : alignée sur naX (après le label TAB / clef portée)
   if(m.repeatStart){
-    const repX = naX - 13;
+    const REP_W = 16; // doit correspondre à computePAD
+    const repX = naX - REP_W;
     svgLine(repX,   tabTop, repX,   tabBot, '#1a1a2e', 3.5, svg);
     svgLine(repX+5, tabTop, repX+5, tabBot, '#1a1a2e', 1.0, svg);
     svgDot(repX+10, tabTop+(ns-1)*TSP*0.33, 2.0, '#1a1a2e', svg);
@@ -1952,6 +2027,11 @@ function drawTabLines(svg,m,mX,mW,tabTop,TSP,ns,naX,naW,isFirstInRow=false){
     svgDot(rx-10, tabTop+(ns-1)*TSP*0.67, 2.0, '#1a1a2e', svg);
     svgLine(rx-5, tabTop, rx-5, tabTop+(ns-1)*TSP, '#1a1a2e', 1.0, svg);
     svgLine(rx,   tabTop, rx,   tabTop+(ns-1)*TSP, '#1a1a2e', 3.5, svg);
+  }
+
+  // Barre droite (séparateur entre mesures)
+  if(!m.repeatEnd){
+    svgLine(mX+mW, tabTop, mX+mW, tabBot, '#1a1a2e', 1.0, svg);
   }
 
   const hit=svgRect(naX,tabTop-4,naW,(ns-1)*TSP+8,'transparent','none',svg);
@@ -3376,6 +3456,78 @@ function toggleSidebar(){
   if(window.innerWidth<=600) sb.classList.toggle('open');
   else sb.classList.toggle('closed');
 }
+function exportPDF(){
+  const doPrint=()=>{
+    // Collecter tous les SVG de la partition
+    const container=document.getElementById('measures-container');
+    const header=document.getElementById('score-inner').querySelector('.s-header');
+    if(!container){ alert('Rien à exporter.'); return; }
+
+    const title=document.getElementById('disp-title')?.textContent||score.title||'Partition';
+    const composer=document.getElementById('disp-composer')?.textContent||score.composer||'';
+
+    // Sérialiser les SVGs
+    const serializer=new XMLSerializer();
+    let svgContent='';
+    container.querySelectorAll('svg').forEach(svg=>{
+      // Cloner pour fixer les dimensions
+      const clone=svg.cloneNode(true);
+      const vb=svg.getAttribute('viewBox');
+      if(vb){
+        const parts=vb.split(' ');
+        clone.setAttribute('width','100%');
+        clone.setAttribute('style','display:block;margin-bottom:4px');
+      }
+      svgContent+=serializer.serializeToString(clone)+'\n';
+    });
+
+    // Ouvrir fenêtre d'impression
+    const win=window.open('','_blank','width=900,height=700');
+    if(!win){ alert('Veuillez autoriser les popups pour créer le PDF.'); return; }
+    win.document.write(`<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title>${title}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
+  @font-face{font-family:'Bravura';src:url('https://cdn.jsdelivr.net/npm/bravura@1.3.2/redist/Bravura.woff2') format('woff2');}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Crimson Pro',serif;background:#fff;padding:12mm}
+  h1{font-size:22px;font-weight:700;text-align:center;margin-bottom:4px}
+  h2{font-size:14px;font-style:italic;text-align:center;margin-bottom:16px;color:#555}
+  .score{width:100%}
+  @media print{
+    @page{size:A4 portrait;margin:10mm}
+    body{padding:0}
+    button{display:none}
+  }
+</style>
+</head><body>
+<h1>${title}</h1>
+${composer?`<h2>${composer}</h2>`:''}
+<div class="score">${svgContent}</div>
+<p style="text-align:center;margin-top:16px">
+  <button onclick="window.print()" style="padding:8px 20px;font-size:14px;cursor:pointer;background:#1a1a2e;color:#fff;border:none;border-radius:4px">🖨 Imprimer / Enregistrer PDF</button>
+</p>
+</body></html>`);
+    win.document.close();
+  };
+
+  if(document.fullscreenElement||document.webkitFullscreenElement){
+    const onExit=()=>{
+      document.removeEventListener('fullscreenchange',onExit);
+      document.removeEventListener('webkitfullscreenchange',onExit);
+      doPrint();
+    };
+    document.addEventListener('fullscreenchange',onExit);
+    document.addEventListener('webkitfullscreenchange',onExit);
+    setTimeout(doPrint,400);
+    if(document.exitFullscreen) document.exitFullscreen().catch(doPrint);
+    else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+  } else {
+    doPrint();
+  }
+}
 function toggleFullscreen(){
   const btn=document.getElementById('fs-btn');
   if(!document.fullscreenElement&&!document.webkitFullscreenElement){
@@ -3518,8 +3670,10 @@ function confirmNew(){
   m0new.timeNum=tn; m0new.timeDen=td; m0new.key=0; m0new.tempo=bpm;
   selEl=null; selZone='staff'; cursorPos={mi:0,pos:0};
   undoStack=[]; redoStack=[];
-  isDirty=false; syncPartitionPanel(); updateHeader(); updatePartSelector();
-  buildRehearsalList();   // vider la liste des morceaux
+  isDirty=false;
+  resetAllUI();
+  syncPartitionPanel(); updateHeader(); updatePartSelector();
+  buildRehearsalList();
   closeDlg('dlg-new'); render();
 }
 function openFile(){
@@ -3528,19 +3682,20 @@ function openFile(){
   }
   const inp=document.getElementById('file-inp');
   inp.value='';
-  // Quitter le plein écran avant d'ouvrir le sélecteur de fichiers
-  // (sinon certains navigateurs ferment le plein écran et perdent le contexte)
-  const doClick=()=>{ inp.click(); };
+  const doClick=()=>{ setTimeout(()=>inp.click(), 50); };
   if(document.fullscreenElement||document.webkitFullscreenElement){
+    // Quitter le plein écran avant d'ouvrir le dialogue fichier
     const onExit=()=>{
       document.removeEventListener('fullscreenchange',onExit);
       document.removeEventListener('webkitfullscreenchange',onExit);
-      setTimeout(doClick,80);
+      doClick();
     };
     document.addEventListener('fullscreenchange',onExit);
     document.addEventListener('webkitfullscreenchange',onExit);
-    if(document.exitFullscreen) document.exitFullscreen();
-    else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+    // Fallback si l'événement ne se déclenche pas
+    setTimeout(()=>{ doClick(); }, 400);
+    if(document.exitFullscreen) document.exitFullscreen().catch(doClick);
+    else if(document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
   } else {
     doClick();
   }
@@ -3554,6 +3709,7 @@ function loadFile(e){
         score.parts=[]; score.activePart=0; score.mergeTab=false;
         selEl=null; selZone='staff'; cursorPos={mi:0,pos:0};
         undoStack=[]; redoStack=[];
+        resetAllUI();
         parseMXML(xml);
         syncPartitionPanel();
         isDirty=false; render(); buildRehearsalList();
