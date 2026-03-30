@@ -1409,6 +1409,15 @@ function render(){
         ctx.timeNum!==prevCtx?.timeNum || ctx.timeDen!==prevCtx?.timeDen
       );
       const showKeyChange = globalMi>0 && ctx.key!==(prevCtx?.key??0);
+
+      // Barre fine gauche en début de chaque rangée (sauf si reprise — elle gère elle-même)
+      if(mi===0 && !m.repeatStart){
+        const bx = mi*MW + 1;
+        const y1 = showS ? staffTop : tabTop;
+        const y2 = showT ? tabTop+TAB_H : staffTop+STAFF_H;
+        svgLine(bx, y1, bx, y2, '#1a1a2e', 1.0, svg);
+      }
+
       renderMeas(svg,m,mi*MW,MW,staffTop,tabTop,SP,TSP,NS_,showS,showT,mi===0&&r===0,mi===0,ctx,showClefChange,showTimeChange,showKeyChange);
     });
 
@@ -1554,7 +1563,7 @@ function renderMeas(svg,m,mX,mW,staffTop,tabTop,SP,TSP,ns,showS,showT,isVeryFirs
   }
 
   if(showS) drawStaff(svg,m,mX,mW,staffTop,SP,naX,naW,PAD,isFirstInRow,isVeryFirst,ctx,showClefChange,showTimeChange,showKeyChange);
-  if(showT) drawTabLines(svg,m,mX,mW,tabTop,TSP,ns,naX,naW,isFirstInRow);
+  if(showT) drawTabLines(svg,m,mX,mW,tabTop,TSP,ns,naX,naW,isFirstInRow,isVeryFirst);
 
   // Curseur de position : ligne + note fantôme
   if(cursorPos.mi===m.num-1){
@@ -1831,15 +1840,10 @@ function drawStaff(svg,m,mX,mW,staffTop,SP,naX,naW,PAD,isFirstInRow=false,isVery
   let curX = mX + 4;
 
   // ── 1. Barre gauche ──
-  // On dessine la barre gauche seulement sur la première mesure de la rangée (isFirstInRow)
-  // Les mesures intermédiaires n'ont pas besoin de barre gauche — la barre droite
-  // de la mesure précédente fait office de séparateur
+  // La barre fine gauche est dessinée par render() au niveau de la rangée
+  // Ici on gère uniquement le curseur X
   const barX0 = mX + 1;
-  if(isFirstInRow && !m.repeatStart){
-    svgLine(barX0, staffTop, barX0, staffTop+SP*4, '#1a1a2e', 1.0, svg);
-    curX = barX0 + 5;
-  } else if(!isFirstInRow && !m.repeatStart){
-    // Barre intermédiaire fine (tracée par la mesure précédente en barre droite, on saute)
+  if(!m.repeatStart){
     curX = mX + 3;
   } else {
     curX = barX0 + 5;
@@ -1934,17 +1938,25 @@ function drawStaff(svg,m,mX,mW,staffTop,SP,naX,naW,PAD,isFirstInRow=false,isVery
   }
 
   // ── 4b. Barre de reprise gauche — dessinée APRÈS clef/armure/chiffrage ──
-  // REP_W = 16 doit correspondre à computePAD qui ajoute REP_W si repeatStart
   if(m.repeatStart){
-    const REP_W = 16; // doit correspondre à computePAD
-    // Barre fine à mX+2 (début système)
-    svgLine(mX+2, staffTop, mX+2, staffTop+SP*4, '#1a1a2e', 1.0, svg);
-    // Barre épaisse + fine + points juste avant naX
-    const repX = naX - REP_W;
-    svgLine(repX,   staffTop, repX,   staffTop+SP*4, '#1a1a2e', 3.5, svg);
-    svgLine(repX+5, staffTop, repX+5, staffTop+SP*4, '#1a1a2e', 1.0, svg);
-    svgDot(repX+10, staffTop+SP*1.5, 2.0, '#1a1a2e', svg);
-    svgDot(repX+10, staffTop+SP*2.5, 2.0, '#1a1a2e', svg);
+    const REP_W = 16;
+    if(isFirstInRow){
+      // Première mesure de rangée : barre fine à gauche + épaisse+fine+points avant notes
+      svgLine(mX+1, staffTop, mX+1, staffTop+SP*4, '#1a1a2e', 1.0, svg);
+      const repX = naX - REP_W;
+      svgLine(repX,   staffTop, repX,   staffTop+SP*4, '#1a1a2e', 3.5, svg);
+      svgLine(repX+5, staffTop, repX+5, staffTop+SP*4, '#1a1a2e', 1.0, svg);
+      svgDot(repX+10, staffTop+SP*1.5, 2.0, '#1a1a2e', svg);
+      svgDot(repX+10, staffTop+SP*2.5, 2.0, '#1a1a2e', svg);
+    } else {
+      // Mesure intermédiaire : la barre droite précédente fait la barre fine
+      // On dessine épaisse+fine+points collées à mX (juste après la barre précédente)
+      const repX = mX + 2;
+      svgLine(repX,   staffTop, repX,   staffTop+SP*4, '#1a1a2e', 3.5, svg);
+      svgLine(repX+5, staffTop, repX+5, staffTop+SP*4, '#1a1a2e', 1.0, svg);
+      svgDot(repX+10, staffTop+SP*1.5, 2.0, '#1a1a2e', svg);
+      svgDot(repX+10, staffTop+SP*2.5, 2.0, '#1a1a2e', svg);
+    }
   }
 
   // ── 5. Barre droite de reprise ──
@@ -1985,7 +1997,7 @@ function drawStaff(svg,m,mX,mW,staffTop,SP,naX,naW,PAD,isFirstInRow=false,isVery
   hit.addEventListener('click', e => onStaffClick(e, m, svg, staffTop, SP, naX, naW));
 }
 
-function drawTabLines(svg,m,mX,mW,tabTop,TSP,ns,naX,naW,isFirstInRow=false){
+function drawTabLines(svg,m,mX,mW,tabTop,TSP,ns,naX,naW,isFirstInRow=false,isVeryFirst=false){
   const startX = mX + 2;
   const tabBot  = tabTop+(ns-1)*TSP;
 
@@ -1997,10 +2009,7 @@ function drawTabLines(svg,m,mX,mW,tabTop,TSP,ns,naX,naW,isFirstInRow=false){
     svgLine(mX, tabTop+s*TSP, mX+mW, tabTop+s*TSP, '#444444', 0.7, svg);
   }
 
-  // Barre gauche seulement sur première mesure de la rangée
-  if(isFirstInRow){
-    svgLine(startX, tabTop, startX, tabBot, '#1a1a2e', 1.0, svg);
-  }
+  // Barre gauche gérée par render() au niveau rangée
 
   if(isFirstInRow){
     // TAB label dans la marge gauche (entre mX+2 et naX)
@@ -2011,14 +2020,21 @@ function drawTabLines(svg,m,mX,mW,tabTop,TSP,ns,naX,naW,isFirstInRow=false){
     svgText('B', labelX, ty+18, 8, '#777', 'middle', '700', svg);
   }
 
-  // Barre de reprise gauche : alignée sur naX (après le label TAB / clef portée)
+  // Barre de reprise gauche
   if(m.repeatStart){
-    const REP_W = 16; // doit correspondre à computePAD
-    const repX = naX - REP_W;
-    svgLine(repX,   tabTop, repX,   tabBot, '#1a1a2e', 3.5, svg);
-    svgLine(repX+5, tabTop, repX+5, tabBot, '#1a1a2e', 1.0, svg);
-    svgDot(repX+10, tabTop+(ns-1)*TSP*0.33, 2.0, '#1a1a2e', svg);
-    svgDot(repX+10, tabTop+(ns-1)*TSP*0.67, 2.0, '#1a1a2e', svg);
+    if(isFirstInRow){
+      const repX = naX - 16;
+      svgLine(repX,   tabTop, repX,   tabBot, '#1a1a2e', 3.5, svg);
+      svgLine(repX+5, tabTop, repX+5, tabBot, '#1a1a2e', 1.0, svg);
+      svgDot(repX+10, tabTop+(ns-1)*TSP*0.33, 2.0, '#1a1a2e', svg);
+      svgDot(repX+10, tabTop+(ns-1)*TSP*0.67, 2.0, '#1a1a2e', svg);
+    } else {
+      const repX = mX + 2;
+      svgLine(repX,   tabTop, repX,   tabBot, '#1a1a2e', 3.5, svg);
+      svgLine(repX+5, tabTop, repX+5, tabBot, '#1a1a2e', 1.0, svg);
+      svgDot(repX+10, tabTop+(ns-1)*TSP*0.33, 2.0, '#1a1a2e', svg);
+      svgDot(repX+10, tabTop+(ns-1)*TSP*0.67, 2.0, '#1a1a2e', svg);
+    }
   }
 
   if(m.repeatEnd){
@@ -3780,6 +3796,8 @@ function parseMXML(xml){
     const partObj=score.parts.find(p=>p.id===partId)||score.parts[0];
     partEl.querySelectorAll('measure').forEach((mel,idx)=>{
       const m=mkM(idx+1);
+      let currentDivisions = partObj._currentDivisions || 1;
+      // (sera mis à jour ci-dessous si <divisions> présent dans cette mesure)
       const tie=mel.querySelector('time');
       if(tie){
         m.timeNum=parseInt(tie.querySelector('beats')?.textContent||'4');
@@ -3855,31 +3873,127 @@ function parseMXML(xml){
         }
         if(rehText) m.rehearsal=rehText;
       }
-      // Direction words importants (tempo text déjà géré)
-      const clefSign=mel.querySelector('clef sign');
-      const clefOctEl=mel.querySelector('clef clef-octave-change');
+      // ── Clef : prendre la clef staff=1 (portée) en priorité, ignorer TAB ──
+      let clefSign = null, clefOctEl = null, clefLineEl = null;
+      mel.querySelectorAll('clef').forEach(clefEl => {
+        // Ignorer staff=2 (tablature intégrée)
+        if(clefEl.getAttribute('number') === '2') return;
+        const signEl = clefEl.querySelector('sign');
+        if(!signEl) return;
+        const txt = signEl.textContent.trim();
+        if(txt === 'TAB' || txt === 'tab' || txt === 'percussion') return;
+        // Prendre la première clef valide
+        if(!clefSign){
+          clefSign = txt;
+          clefOctEl = clefEl.querySelector('clef-octave-change');
+          clefLineEl = clefEl.querySelector('line');
+        }
+      });
       if(clefSign){
-        m.clef=clefSign.textContent.trim();
-        m.clefOctave=clefOctEl?parseInt(clefOctEl.textContent||'0'):0;
-        m.clefLine=parseInt(mel.querySelector('clef line')?.textContent||'2');
+        m.clef = clefSign;
+        m.clefOctave = clefOctEl ? parseInt(clefOctEl.textContent||'0') : 0;
+        m.clefLine = clefLineEl ? parseInt(clefLineEl.textContent||'2') : 2;
       }
-      // Si pas de clef explicite → null (héritera de getMeasureCtx)
+
+      // ── Parser les notes avec gestion <backup> ──
+      // divisions héritées de la mesure précédente si non définies
+      const divEl = mel.querySelector('divisions');
+      if(divEl) currentDivisions = parseInt(divEl.textContent||'1') || 1;
+      const divisions = currentDivisions;
+      partObj._currentDivisions = divisions; // hériter pour mesure suivante
+
+      // Première passe : collecter les notes TAB (staff=2) indexées par position en ticks
+      const tabByPos = {};
+      let posTmp = 0;
+
+      mel.childNodes.forEach(node=>{
+        if(node.nodeType !== 1) return;
+        const tag = node.tagName;
+        if(tag === 'note'){
+          const isChordN = !!node.querySelector('chord');
+          const dur = parseInt(node.querySelector('duration')?.textContent||'0');
+          if(isChordN) posTmp -= dur;
+          const staffN = node.querySelector('staff')?.textContent?.trim();
+          const tech = node.querySelector('technical');
+          if((staffN === '2') && tech){
+            const s = parseInt(tech.querySelector('string')?.textContent||'1');
+            const f = parseInt(tech.querySelector('fret')?.textContent||'0');
+            tabByPos[posTmp] = {string:s, fret:f};
+          }
+          if(!isChordN) posTmp += dur;
+        } else if(tag === 'backup'){
+          const dur = parseInt(node.querySelector('duration')?.textContent||'0');
+          posTmp -= dur;
+          if(posTmp < 0) posTmp = 0;
+        } else if(tag === 'forward'){
+          const dur = parseInt(node.querySelector('duration')?.textContent||'0');
+          posTmp += dur;
+        }
+      });
+
+      // Convertir les divisions MusicXML en base-64 (DIVS)
+      // DIVS[whole]=64, divisions=ticks_par_noire
+      // base-64: whole=64, quarter=16 → factor = 16/divisions (par noire)
+      // mais les durées dans le fichier sont en ticks_par_noire multiples
+      // ex: divisions=240, whole=960 → 960/240=4 noires → base64=64
+      const toBase64 = (ticks) => Math.round(ticks * 16 / divisions);
 
       let pos=0;
-      mel.querySelectorAll('note').forEach(nel=>{
+      let skipBackupVoices = false;
+      let firstVoiceSeen = null;
+
+      mel.childNodes.forEach(node=>{
+        if(node.nodeType !== 1) return;
+        const tag = node.tagName;
+
+        if(tag === 'backup'){
+          // Après un backup, on est sur une 2ème voix/staff — à ignorer pour la portée
+          skipBackupVoices = true;
+          const dur = parseInt(node.querySelector('duration')?.textContent||'0');
+          pos -= toBase64(dur);
+          if(pos < 0) pos = 0;
+          return;
+        }
+        if(tag === 'forward'){
+          const dur = parseInt(node.querySelector('duration')?.textContent||'0');
+          pos += toBase64(dur);
+          return;
+        }
+        if(tag !== 'note') return;
+
+        const nel = node;
+        const staffN = nel.querySelector('staff')?.textContent?.trim();
+        // Ignorer les notes staff=2 (TAB intégrée — déjà traitées)
+        if(staffN === '2') {
+          const dur = parseInt(nel.querySelector('duration')?.textContent||'0');
+          const isChordN = !!nel.querySelector('chord');
+          if(!isChordN) pos += toBase64(dur);
+          return;
+        }
+        // Après un <backup>, ignorer les doublons de la 2ème voix
+        // (TableEdit duplique les notes portée en voix 2 pour la TAB)
+        const voiceN = nel.querySelector('voice')?.textContent?.trim();
+        if(skipBackupVoices && voiceN && firstVoiceSeen && voiceN !== firstVoiceSeen){
+          const dur = parseInt(nel.querySelector('duration')?.textContent||'0');
+          const isChordN = !!nel.querySelector('chord');
+          if(!isChordN) pos += toBase64(dur);
+          return;
+        }
+
         const isChord=!!nel.querySelector('chord');
-        if(isChord) pos-=DIVS[nel.querySelector('type')?.textContent||'quarter']||16;
+        if(isChord) pos -= toBase64(parseInt(nel.querySelector('duration')?.textContent||'0'));
+
         const isRestEl=!!nel.querySelector('rest');
         const isMeasureRest=isRestEl&&nel.querySelector('rest')?.getAttribute('measure')==='yes';
         const p=nel.querySelector('pitch');
-        if(!p && !isRestEl) { if(!isChord) pos+=DIVS[nel.querySelector('type')?.textContent||'quarter']||16; return; }
+        if(!p && !isRestEl) {
+          if(!isChord) pos+=toBase64(parseInt(nel.querySelector('duration')?.textContent||'0'));
+          return;
+        }
 
-        // Durée : pour les silences pleine mesure, calculer depuis divisions+duration
         let dur_;
         if(isMeasureRest){
-          // Durée pleine mesure = timeNum beats de timeDen
-          // On choisit le type le plus proche (whole/half/quarter)
-          const measDivs = m.timeNum*(64/m.timeDen); // en base 64
+          const measDivs = m.timeNum*(64/m.timeDen);
           if(measDivs>=64) dur_='whole';
           else if(measDivs>=32) dur_='half';
           else if(measDivs>=16) dur_='quarter';
@@ -3887,28 +4001,40 @@ function parseMXML(xml){
         } else {
           dur_=nel.querySelector('type')?.textContent||'quarter';
         }
+
+        // Suivre la première voix rencontrée
+        if(!firstVoiceSeen && voiceN) firstVoiceSeen = voiceN;
+
+        const rawPos = pos; // position avant avance
         const n={
           name:     isRestEl?'R':(p?.querySelector('step')?.textContent||'C'),
           octave:   isRestEl?4:parseInt(p?.querySelector('octave')?.textContent||'4'),
           alter:    isRestEl?0:parseFloat(p?.querySelector('alter')?.textContent||'0'),
           duration: dur_,
           dotted:   !!nel.querySelector('dot'),
-          position: pos,
+          position: rawPos,
           isRest:   isRestEl,
           string:1, fret:0,
           articulations:[],dynamic:'',lyric:'',fingerLeft:'',fingerRight:'',bow:'',ornaments:[]
         };
+
+        // TAB : chercher les données TAB correspondantes (même position en ticks bruts)
+        const posTicks = Math.round(rawPos * divisions / 16);
         const tech=nel.querySelector('technical');
         if(tech){
           n.string=parseInt(tech.querySelector('string')?.textContent||'1');
           n.fret  =parseInt(tech.querySelector('fret')?.textContent||'0');
+        } else if(tabByPos[posTicks]){
+          n.string = tabByPos[posTicks].string;
+          n.fret   = tabByPos[posTicks].fret;
         }
+
         const ly=nel.querySelector('lyric text');
         if(ly) n.lyric=ly.textContent;
-        // Dynamique
         const dynEl=nel.querySelector('dynamics');
         if(dynEl) n.dynamic=dynEl.firstElementChild?.tagName||'';
-        pos+=DIVS[dur_]||16;
+
+        if(!isChord) pos+=DIVS[dur_]||16;
         m.notes.push(n);
       });
       partObj.measures.push(m);
