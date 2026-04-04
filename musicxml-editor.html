@@ -710,6 +710,25 @@ pre#xml-out{font-family:'JetBrains Mono',monospace;font-size:10px;background:#1e
           <!-- Liste compacte des pistes générée par buildPartsMgr -->
           <div id="parts-mgr-list" class="parts-mgr" style="margin-bottom:6px"></div>
           <button class="applybtn" style="margin-bottom:8px;font-size:11px" onclick="openAddPartDialog()">⊕ Ajouter une piste…</button>
+          <!-- Transposition -->
+          <div style="margin-bottom:6px;padding:5px 6px;background:#f5f2ea;border-radius:4px;border:1px solid #d8d0c8">
+            <div style="font-size:9px;font-weight:600;color:#555;margin-bottom:4px">Transposer portée active</div>
+            <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+              <span style="font-size:9px;color:#666">Demi-tons :</span>
+              <button onclick="transposeActivePart(-1)" class="btn btn-s" style="font-size:10px;min-width:22px">−½</button>
+              <button onclick="transposeActivePart(1)"  class="btn btn-s" style="font-size:10px;min-width:22px">+½</button>
+              <span style="font-size:9px;color:#666;margin-left:4px">Octave :</span>
+              <button onclick="transposeActivePart(-12)" class="btn btn-s" style="font-size:10px;min-width:24px">−8</button>
+              <button onclick="transposeActivePart(12)"  class="btn btn-s" style="font-size:10px;min-width:24px">+8</button>
+            </div>
+            <div style="font-size:9px;font-weight:600;color:#7a3a00;margin:5px 0 3px">Décaler TAB liée (octave seul)</div>
+            <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+              <span style="font-size:9px;color:#666">Octave :</span>
+              <button onclick="shiftTabOctave(-12)" class="btn btn-s" style="font-size:10px;min-width:24px;background:#7a3a00;color:#fff">−8</button>
+              <button onclick="shiftTabOctave(12)"  class="btn btn-s" style="font-size:10px;min-width:24px;background:#7a3a00;color:#fff">+8</button>
+              <span style="font-size:9px;color:#aaa;margin-left:4px">Recalcule les frettes</span>
+            </div>
+          </div>
           <!-- Séparateur -->
           <div style="border-top:1px solid #c8c0aa;padding-top:7px">
           <div class="prow"><label class="plbl">Zoom</label>
@@ -1055,40 +1074,33 @@ const DURN = {whole:'Ronde',half:'Blanche',quarter:'Noire',eighth:'Croche','16th
 const STEPN = {C:0,D:1,E:2,F:3,G:4,A:5,B:6};
 const STEPS = ['C','D','E','F','G','A','B'];
 const SEMI  = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
-// Accordage en demi-tons depuis C0 : corde 1 (aigu) → corde N (grave)
+// Accordage en demi-tons MIDI : corde 1 (aiguë, haut TAB) → corde N (grave, bas TAB)
+// Les noms d'accordage sont donnés du grave vers l'aigu (convention musicale)
+// ex: banjo GDAE = G grave → E aigu → dans le tableau : E3 A3 D4 G4 (aigu→grave)
 const TUNING_SEMIS = {
-  guitar:      [64,59,55,50,45,40],   // E4 B3 G3 D3 A2 E2
-  guitar_dropD:[64,59,55,50,45,38],   // Drop D
-  guitar_dadgad:[62,57,55,50,45,38],  // DADGAD
-  guitar_openG:[62,59,55,50,43,38],   // Open G
-  guitar_openD:[62,57,54,50,45,38],   // Open D
-  guitar7:     [64,59,55,50,45,40,35],// 7 cordes B grave
-  bass:        [52,47,43,38],          // E2 A2 D3 G3 (écriture 8vb)
-  bass5:       [52,47,43,38,33],       // basse 5c (Si grave)
-  bass6:       [55,52,47,43,38,33],    // basse 6c
-  ukulele:     [57,52,48,43],          // A4 E4 C4 G4
-  mandolin:    [76,69,62,55],          // E5 A4 D4 G3
-  banjo5:      [62,59,55,50,62],       // G4 D4 G3 D3 G4(5e)
-  banjo4:      [62,59,55,50],          // ténor/plectrum
-  // Banjo GDAE (irlandais/jazz ténor)
-  banjo_gdae:  [62,57,50,43],          // G4 D4 A3 E3
-  // Bouzouki grec (CGDA standard, parfois DGBE)
-  bouzouki_gr: [48,55,62,69],          // C3 G3 D4 A4 (doubles cordes)
-  // Bouzouki irlandais (GDAD)
-  bouzouki_ir: [62,57,50,62],          // G4 D4 A3 D4
-  // Nouzoki (variante bouzouki G tuning)
-  nouzoki:     [55,62,69,74],          // G3 D4 A4 D5
-  // Oud (La re sol do fa la - sans frettes)
-  oud:         [57,50,43,36,29,57],    // A2 D2 G2 C2 F1 A2 (approx)
-  // Violoncelle CGDA
-  cello:       [48,55,62,69],          // C2 G2 D3 A3
-  // Contrebasse EADG
-  contrebasse: [28,33,38,43],          // E1 A1 D2 G2
-  // Violon GDAE
-  violin:      [55,62,69,76],          // G3 D4 A4 E5
-  // Alto CGDA
-  viola:       [48,55,62,69],          // C3 G3 D4 A4
-  custom:      []
+  guitar:       [64,59,55,50,45,40],   // EADGBe → e4 B3 G3 D3 A2 E2 (aigu→grave)
+  guitar_dropD: [64,59,55,50,45,38],   // eBGDAD
+  guitar_dadgad:[62,57,55,50,45,38],   // DAGDAd
+  guitar_openG: [62,59,55,50,43,38],   // DGDGBd
+  guitar_openD: [62,57,54,50,45,38],   // DAF#DAd
+  guitar7:      [64,59,55,50,45,40,35],// eBGDAEB grave
+  bass:         [43,38,33,28],          // GDAE → G2 D2 A1 E1 (aigu→grave)
+  bass5:        [43,38,33,28,23],       // GDAEB → +B0
+  bass6:        [46,43,38,33,28,23],    // BbGDAEB
+  ukulele:      [69,64,60,67],          // GCEA ré-entrant → A4 E4 C4 G4
+  mandolin:     [76,69,62,55],          // GDAE → E5 A4 D4 G3 (aigu→grave)
+  banjo5:       [62,59,55,50,67],       // gDGBD → D4 B3 G3 D3 G4-pouce
+  banjo4:       [60,55,50,45],          // ADGC → C4 G3 D3 A2 (plectrum, aigu→grave)
+  banjo_gdae:   [64,57,50,43],          // GDAE → E4 A3 D3 G3 (aigu→grave, ténor irlandais)
+  bouzouki_gr:  [69,62,55,48],          // CGDA → A4 D4 G3 C3 (aigu→grave)
+  bouzouki_ir:  [62,57,50,43],          // GDAD → D4 A3 D3 G2 (aigu→grave)
+  nouzoki:      [74,69,67,62],          // D5 A4 G4 D4
+  oud:          [69,62,55,48,41,33],    // A4 D4 G3 C3 F2 A1 (aigu→grave)
+  cello:        [57,50,43,36],          // CGDA → A3 D3 G2 C2 (aigu→grave)
+  contrebasse:  [43,38,33,28],          // EADG → G2 D2 A1 E1 (aigu→grave)
+  violin:       [76,69,62,55],          // GDAE → E5 A4 D4 G3 (aigu→grave)
+  viola:        [69,62,55,48],          // CGDA → A4 D4 G3 C3 (aigu→grave)
+  custom:       []
 };
 
 // Catalogue instruments : { label, strings, tuningKey, clef, clefOctave, hasTab }
@@ -1700,8 +1712,10 @@ function render(){
 
   const onlyStaff=document.getElementById('only-staff').checked;
   const onlyTab  =document.getElementById('only-tab').checked;
+  // Respecter hasTab de la piste active — si pas de TAB dans le fichier, ne pas l'afficher
+  const partHasTab = score.parts?.length===1 ? (score.parts[0].hasTab!==false) : true;
   const showS = !onlyTab;
-  const showT = !onlyStaff;
+  const showT = !onlyStaff && partHasTab;
 
   // Layout constants (SVG px = CSS px at 1:1)
   const PAGE_W  = 718;
@@ -2038,22 +2052,16 @@ function renderMeas(svg,m,mX,mW,staffTop,tabTop,SP,TSP,ns,showS,showT,isVeryFirs
       svgEl('rect',{x:cx-8,y:tabTop-2,width:16,height:(ns-1)*TSP+4,rx:3,
         fill:'rgba(232,120,26,0.08)',stroke:'none'},svg);
 
-      const li=curString-1;
+      const li=curString-1;  // corde 1 (aiguë) en haut
       const ly=tabTop+li*TSP;
       const fretStr=tabInput.fretStr;
       if(fretStr===''){
         const r2=TSP*0.44;
-        svgEl('circle',{cx,cy:ly,r:r2,
-          fill:'rgba(255,248,240,0.95)',stroke:'#e8781a','stroke-width':1.8},svg);
+        svgEl('circle',{cx,cy:ly,r:r2,fill:'rgba(255,248,240,0.95)',stroke:'#e8781a','stroke-width':1.8},svg);
       } else {
         const bw=fretStr.length>1?16:12;
-        svgEl('rect',{x:cx-bw/2,y:ly-5,width:bw,height:10,rx:3,
-          fill:'#fff5ec',stroke:'#e8781a','stroke-width':1.4},svg);
-        svgEl('text',{x:cx,y:ly+3.5,
-          'font-size':fretStr.length>1?8:10,
-          fill:'#c8541a','text-anchor':'middle',
-          'font-family':"'JetBrains Mono',monospace",'font-weight':'700'},svg)
-          .textContent=fretStr;
+        svgEl('rect',{x:cx-bw/2,y:ly-5,width:bw,height:10,rx:3,fill:'#fff5ec',stroke:'#e8781a','stroke-width':1.4},svg);
+        svgEl('text',{x:cx,y:ly+3.5,'font-size':fretStr.length>1?8:10,fill:'#c8541a','text-anchor':'middle','font-family':"'JetBrains Mono',monospace",'font-weight':'700'},svg).textContent=fretStr;
       }
     }
 
@@ -2513,9 +2521,10 @@ function barLine(svg,x,y1,y2,repS,repE){
 }
 
 function drawNoteStaff(svg,n,nX,staffTop,SP,isSel,mi,ni,isChord=false,clef='G',clefOctave=0,partIdx=null,showT=false,tabTop=null,TSP=13,ns=6,beamed=null){
-  // Couleur : bleu si sélectionné depuis portée, jaune si depuis tablature
+  // Couleur : rouge si hors manche, bleu/jaune si sélectionné, noir sinon
   const nc = isSel
     ? (selZone==='tab' ? '#c8a000' : '#1e90ff')
+    : n.outOfRange ? '#cc2200'
     : '#1a1a2e';
   // midRef=6 = B4 sur la 3e ligne en clef de Sol
   // midRef=-8 = D3 en clef de Fa, midRef=-1 = B3 en clef Ut
@@ -2722,9 +2731,10 @@ function drawNoteStaff(svg,n,nX,staffTop,SP,isSel,mi,ni,isChord=false,clef='G',c
 }
 
 function drawNoteTab(svg,n,nX,tabTop,TSP,ns,isSel,mi,ni,isChord=false,partIdx=null){
-  // Couleur : bleu si sélectionné depuis tablature, jaune si depuis portée
+  // Couleur : rouge si hors manche, bleu/jaune si sélectionné, noir sinon
   const nc = isSel
     ? (selZone==='staff' ? '#c8a000' : '#1e90ff')
+    : n.outOfRange ? '#cc2200'
     : '#1a1a2e';
 
   // ── SILENCE sur tablature ──
@@ -2739,20 +2749,20 @@ function drawNoteTab(svg,n,nX,tabTop,TSP,ns,isSel,mi,ni,isChord=false,partIdx=nu
     t.addEventListener('click',e=>{e.stopPropagation();if(partIdx!==null&&partIdx!==score.activePart){score.activePart=partIdx;score.measures=score.parts[partIdx]?.measures||[];}selectNote(mi,ni,false,'tab');});
     return;
   }
-  const li=n.string-1;
+  const li=n.string-1;  // corde 1 (aiguë) en HAUT, corde ns (grave) en BAS
   const ly=tabTop+li*TSP;
 
   const fstr=String(n.fret);
-  const bw=Math.max(12, fstr.length*7+6);
+  const bw=Math.max(14, fstr.length*8+6);
   const bgFill=isSel
     ? (selZone==='staff' ? 'rgba(200,160,0,0.12)' : 'rgba(30,144,255,0.15)')
     : '#faf8f3';
 
   svgRect(nX-bw/2+3,ly-5,bw,10,bgFill,'none',svg);
 
-  const te=svgEl('text',{x:nX+3,y:ly+3,
-    'font-size':7,fill:nc,'text-anchor':'middle',
-    'font-weight':'500','font-family':"'JetBrains Mono',monospace",
+  const te=svgEl('text',{x:nX+3,y:ly+3.5,
+    'font-size':8,fill:nc,'text-anchor':'middle',
+    'font-weight':'700','font-family':"'JetBrains Mono',monospace",
     cursor:'pointer'},svg);
   te.textContent=fstr;
   te.addEventListener('click',e=>{e.stopPropagation();if(partIdx!==null&&partIdx!==score.activePart){score.activePart=partIdx;score.measures=score.parts[partIdx]?.measures||[];}selectNote(mi,ni,false,'tab');});
@@ -4293,7 +4303,12 @@ function loadFile(e){
   r.onload=ev=>{
     const doLoad=xml=>{
       try{
+        // Réinitialisation complète du score avant chargement
+        score.title=''; score.composer=''; score.arranger=''; score.opus='';
+        score.publisher=''; score.rights=''; score.date=''; score.version='1.0';
+        score.revision=''; score.tempo=80; score.timeNum=4; score.timeDen=4; score.key=0;
         score.parts=[]; score.activePart=0; score.mergeTab=false;
+        score.measures=[]; score.mpr=score.mpr||2;
         selEl=null; selZone='staff'; cursorPos={mi:0,pos:0};
         undoStack=[]; redoStack=[];
         resetAllUI();
@@ -4348,15 +4363,16 @@ function parseMXML(xml){
   score.parts=[];
   doc.querySelectorAll('part-list score-part').forEach(sp=>{
     const instSound=sp.querySelector('instrument-sound')?.textContent||'';
-    // Détecter si la piste a besoin d'une tablature guitare/basse
-    // Exclure les voix vocales (voice.*) même si elles contiennent "bass"
-    const hasTab = !instSound.startsWith('voice.') &&
+    // hasTab sera confirmé après parsing si des données <technical> existent
+    const mightHaveTab = !instSound.startsWith('voice.') &&
       /guitar|bass|pluck|string\.pluck/.test(instSound);
     score.parts.push({
       id:    sp.getAttribute('id'),
       name:  sp.querySelector('part-name')?.textContent?.trim() || sp.getAttribute('id'),
       abbr:  sp.querySelector('part-abbreviation')?.textContent?.trim() || '',
-      hasTab: hasTab,
+      instrId: mightHaveTab ? 'guitar' : null,
+      hasTab: false, // sera mis à true seulement si des <technical> sont trouvées
+      showStaff: true,
       measures:[]
     });
   });
@@ -4599,9 +4615,11 @@ function parseMXML(xml){
         if(tech){
           n.string=parseInt(tech.querySelector('string')?.textContent||'1');
           n.fret  =parseInt(tech.querySelector('fret')?.textContent||'0');
+          n._hasTech=true;
         } else if(tabByPos[posTicks]){
           n.string = tabByPos[posTicks].string;
           n.fret   = tabByPos[posTicks].fret;
+          n._hasTech=true;
         }
 
         const ly=nel.querySelector('lyric text');
@@ -4614,6 +4632,14 @@ function parseMXML(xml){
       });
       partObj.measures.push(m);
     });
+  });
+
+  // ── Confirmer hasTab : seulement si le fichier contient de vraies données TAB ──
+  score.parts.forEach(p=>{
+    const hasTech = p.measures.some(m=>m.notes.some(n=>!n.isRest && (n.fret!==0 || n.string!==1) ));
+    const hasAnyTech = p.measures.some(m=>m.notes.some(n=>!n.isRest && n._hasTech));
+    p.hasTab = hasAnyTech; // seulement si <technical> explicite
+    if(!p.hasTab) { p.showStaff=true; }
   });
 
   // ── Corriger les volta stops (ending stop souvent absent dans les fichiers) ──
@@ -5340,7 +5366,7 @@ function renderMeasMulti(svg,m,globalMi,mX,mW,staffTop,tabTop,SP,TSP,ns,showS,sh
     svgLine(cx,cy1,cx,cy2,'#e8781a',1,svg);
 
     if(showT&&selEl===null){
-      const li=curString-1;
+      const li=curString-1;  // corde 1 (aiguë) en haut
       const ly=tabTop+li*TSP;
       const fretStr=tabInput.fretStr;
       if(fretStr===''){
@@ -6362,14 +6388,41 @@ function confirmNew(){
     // Mettre à jour curString pour la navigation tab
     if(ns>0) curString=Math.min(curString,ns);
   } else {
-    // File vide → fallback guitare standard
-    score.instr='guitar'; score.strings=6;
-    score.tuning=TUNING_SEMIS.guitar.map(s=>noteNameFromSemi(s));
-    for(let i=0;i<mc;i++) score.measures.push(mkM(i+1));
-    const m0=score.measures[0];
-    m0.clef='G'; m0.clefOctave=0; m0.clefLine=2;
+    // File vide → fallback guitare standard (portée + TAB)
+    // On lit les options du panneau cordes pour savoir si TAB demandée
+    const hasTabFallback = (()=>{
+      const cb=document.getElementById('nwt-strings-tab');
+      const instrId=document.getElementById('nwt-strings-instr')?.value||'guitar';
+      const cat=INSTRUMENT_CATALOG.find(c=>c.id===instrId)||INSTRUMENT_CATALOG[0];
+      return (cb?cb.checked:true) && cat.hasTab!==false;
+    })();
+    const instrId=document.getElementById('nwt-strings-instr')?.value||'guitar';
+    const cat=INSTRUMENT_CATALOG.find(c=>c.id===instrId)||INSTRUMENT_CATALOG[0];
+    const tuning=[...TUNING_SEMIS[cat.tuningKey]||TUNING_SEMIS.guitar];
+    const ms=[];
+    for(let i=0;i<mc;i++) ms.push(mkM(i+1));
+    const m0=ms[0];
+    m0.clef=cat.clef||'G'; m0.clefOctave=cat.clefOctave||0; m0.clefLine=2;
     m0.timeNum=tn; m0.timeDen=td; m0.key=0; m0.tempo=bpm;
-    score.parts=[];
+    const mainP={id:'P1', name:cat.label||'Guitare', instrId:cat.id,
+      strings:cat.strings, tuning, hasTab:false, showStaff:true,
+      measures:ms, clef:cat.clef||'G', clefOctave:cat.clefOctave||0};
+    score.parts=[mainP];
+    score.activePart=0;
+    score.measures=ms;
+    score.instr=cat.id; score.strings=cat.strings;
+    score.tuning=tuning.map(s=>noteNameFromSemi(s));
+    if(cat.strings>0) curString=Math.min(curString,cat.strings);
+    if(hasTabFallback){
+      const tabMs=[];
+      for(let i=0;i<mc;i++) tabMs.push(mkM(i+1));
+      tabMs[0].clef='G'; tabMs[0].clefOctave=0; tabMs[0].clefLine=2;
+      tabMs[0].timeNum=tn; tabMs[0].timeDen=td; tabMs[0].key=0; tabMs[0].tempo=bpm;
+      score.parts.push({id:'P1_TAB', name:(cat.label||'Guitare')+' TAB',
+        autoTab:true, parentId:'P1', instrId:cat.id,
+        strings:cat.strings, tuning:[...tuning], hasTab:true,
+        measures:tabMs, showTab:true, showStaff:false});
+    }
   }
 
   // 4. Mettre à jour l'UI sans toucher à score.parts
@@ -6500,13 +6553,45 @@ function buildPartsMgr(){
       delTab.title='Supprimer la tablature liée';
       delTab.onclick=()=>pmgrDeleteLinked(linkedTabPi);
       mainRow.appendChild(delTab);
+
+      // Ligne accordage — affichée grave→aigu (convention musicale), inversé par rapport au stockage
+      const tuningRow=document.createElement('div');
+      tuningRow.style.cssText='display:flex;align-items:center;gap:3px;padding:1px 0 3px 16px;font-size:8px;color:#888;flex-wrap:wrap';
+      const tuningArr=linkedTab.tuning||TUNING_SEMIS[linkedTab.instrId]||[];
+      const noteNames=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+      const tuningLabels=tuningArr.map((v,i)=>{
+        const label = typeof v==='number'
+          ? noteNames[((v%12)+12)%12]+(Math.floor(v/12)-1)
+          : String(v);
+        return {label, idx:i};
+      }).reverse(); // grave→aigu pour l'affichage
+      if(tuningLabels.length){
+        tuningRow.innerHTML='<span style="color:#aaa">Acc:</span> '+
+          tuningLabels.map(({label,idx})=>`<span style="background:#f0ece4;border-radius:2px;padding:0 3px;cursor:pointer" title="Corde ${idx+1}" onclick="pmgrEditTuningNote(${linkedTabPi},${idx})">${label}</span>`).join(' ');
+        wrap.appendChild(tuningRow);
+      }
     } else if(isStrings){
-      // Bouton + TAB
-      const addTabBtn=document.createElement('button');
-      addTabBtn.style.cssText=addBtnStyle;
-      addTabBtn.textContent='+ TAB'; addTabBtn.title='Ajouter une tablature liée';
-      addTabBtn.onclick=()=>pmgrAddLinkedTab(pi);
-      mainRow.appendChild(addTabBtn);
+      // Sélecteur instrument + bouton ⊕ TAB — pas de création immédiate
+      const addRow=document.createElement('div');
+      addRow.style.cssText='display:flex;align-items:center;gap:3px;margin-top:2px;flex-wrap:wrap';
+      const addSel=document.createElement('select');
+      addSel.id='add-tab-instr-'+pi;
+      addSel.style.cssText='font-size:8px;border:1px solid #c8c0aa;border-radius:2px;padding:1px 2px;max-width:90px;flex:1';
+      INSTRUMENT_CATALOG.filter(c=>c.hasTab).forEach(c=>{
+        const o=document.createElement('option');
+        o.value=c.id; o.textContent=c.label;
+        // Préselectionner selon l'instrument de la piste parente
+        if(c.id===(p.instrId||'guitar')) o.selected=true;
+        addSel.appendChild(o);
+      });
+      const addBtn=document.createElement('button');
+      addBtn.style.cssText=addBtnStyle;
+      addBtn.textContent='⊕ TAB';
+      addBtn.title='Créer une tablature liée avec cet instrument';
+      addBtn.onclick=()=>pmgrAddLinkedTab(pi);
+      addRow.appendChild(addSel);
+      addRow.appendChild(addBtn);
+      wrap.appendChild(addRow);
     }
 
     wrap.appendChild(mainRow);
@@ -6572,13 +6657,147 @@ function pmgrRename(pi, val, field){
   render();
 }
 
-function pmgrSetTabInstr(tabPi, instrId){
-  const p=score.parts[tabPi];
+// Décale l'octave de calcul des frettes TAB sans modifier la portée
+function shiftTabOctave(semis){
+  const pi=score.activePart;
+  const p=score.parts[pi];
   if(!p) return;
-  const cat=INSTRUMENT_CATALOG.find(c=>c.id===instrId)||INSTRUMENT_CATALOG[0];
-  p.instrId=instrId;
-  if(cat.strings) p.strings=cat.strings;
-  if(TUNING_SEMIS[cat.tuningKey]) p.tuning=[...TUNING_SEMIS[cat.tuningKey]];
+  // Chercher la TAB liée à la piste active (ou la piste elle-même si c'est une TAB)
+  const tabPart=score.parts.find(t=>t.autoTab&&t.parentId===p.id) ||
+                (p.autoTab ? p : null);
+  const staffPart=tabPart ? score.parts.find(sp=>sp.id===tabPart.parentId)||p : p;
+  if(!tabPart){ alert('Aucune tablature liée à la piste active.'); return; }
+
+  saveHistory();
+  // Mémoriser le décalage d'octave appliqué
+  tabPart._octaveShift=(tabPart._octaveShift||0)+semis;
+
+  // Repeupler avec le nouveau décalage
+  populateTabFromPartWithShift(staffPart, tabPart, tabPart._octaveShift);
+  render();
+}
+
+function populateTabFromPartWithShift(staffPart, tabPart, forceShift){
+  let tuning=tabPart.tuning||TUNING_SEMIS.guitar;
+  if(tuning.length && typeof tuning[0]==='string'){
+    tuning=tuning.map(s=>{
+      const m=s.match(/^([A-Gb#]+)(-?\d+)$/i);
+      if(!m) return 40;
+      return (SEMI[m[1].toUpperCase()]||0)+((parseInt(m[2])+1)*12);
+    });
+  }
+  const nStrings=tabPart.strings||tuning.length||6;
+  const maxFret=22;
+  let srcClefOctave=0;
+  for(const m of staffPart.measures){
+    if(typeof m.clefOctave==='number'){ srcClefOctave=m.clefOctave; break; }
+  }
+
+  staffPart.measures.forEach((sm,mi)=>{
+    const tm=tabPart.measures[mi];
+    if(!tm) return;
+    tm.timeNum=sm.timeNum; tm.timeDen=sm.timeDen;
+    tm.tempo=sm.tempo; tm.key=sm.key;
+    tm.repeatStart=sm.repeatStart; tm.repeatEnd=sm.repeatEnd;
+    tm.volta=sm.volta; tm.rehearsal=sm.rehearsal;
+    tm.notes=sm.notes.map(n=>{
+      const tn=Object.assign({},n);
+      if(n.isRest){ tn.string=1; tn.fret=0; return tn; }
+      const midi=noteToMidi(n,srcClefOctave)+(forceShift||0);
+      let best=null;
+      for(let s=nStrings;s>=1;s--){
+        const fret=midi-tuning[s-1];
+        if(fret>=0&&fret<=maxFret){
+          if(!best||fret<best.fret||(fret===best.fret&&
+            Math.abs(s-Math.round(nStrings/2))<Math.abs(best.string-Math.round(nStrings/2)))){
+            best={string:s,fret};
+          }
+        }
+      }
+      if(best){ tn.string=best.string; tn.fret=best.fret; tn.outOfRange=false; }
+      else {
+        let closestS=1,closestFret=0,minDist=Infinity;
+        for(let s=1;s<=nStrings;s++){
+          const f=midi-tuning[s-1];
+          const dist=f<0?-f:Math.max(0,f-maxFret);
+          if(dist<minDist){minDist=dist;closestS=s;closestFret=Math.max(0,Math.min(maxFret,f));}
+        }
+        tn.string=closestS; tn.fret=closestFret; tn.outOfRange=true;
+      }
+      return tn;
+    });
+  });
+}
+
+// Transpose toutes les notes de la piste active de n demi-tons
+function transposeActivePart(semis){
+  const pi=score.activePart;
+  const p=score.parts[pi];
+  if(!p) return;
+  saveHistory();
+  const STEPS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const STEPS_FLAT=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+  const noteToSemi_=(name,oct,alter)=>(SEMI[name]||0)+oct*12+(alter||0);
+  p.measures.forEach(m=>{
+    m.notes.forEach(n=>{
+      if(n.isRest) return;
+      // Calculer le nouveau MIDI (en convention pitchToSemi: C4=48)
+      let s=noteToSemi_(n.name,n.octave,n.alter||0)+semis;
+      const newOct=Math.floor(s/12);
+      const deg=((s%12)+12)%12;
+      const preferFlat=(n.alter||0)<0;
+      const nm=preferFlat?STEPS_FLAT[deg]:STEPS[deg];
+      const newAlter=nm.includes('#')?1:nm.includes('b')?-1:0;
+      const newName=nm.replace('#','').replace('b','');
+      n.name=newName; n.octave=newOct; n.alter=newAlter;
+    });
+    // Mettre à jour la TAB liée si elle existe
+    const linkedTab=score.parts.find(t=>t.autoTab&&t.parentId===p.id);
+    if(linkedTab) populateTabFromPart(p, linkedTab);
+  });
+  render();
+}
+
+function pmgrSetTabInstr(tabPi, instrId){
+  const tabPart=score.parts[tabPi];
+  if(!tabPart) return;
+  const cat=INSTRUMENT_CATALOG.find(c=>c.id===instrId);
+  if(!cat){ console.warn('Instrument non trouvé:', instrId); return; }
+  tabPart.instrId=instrId;
+  tabPart.strings=cat.strings||tabPart.strings;
+  // Résoudre l'accordage via tuningKey — jamais de fallback silencieux sur guitare
+  const tuningKey=cat.tuningKey||instrId;
+  const newTuning=TUNING_SEMIS[tuningKey];
+  if(!newTuning){ console.warn('Accordage non trouvé pour', tuningKey); return; }
+  tabPart.tuning=[...newTuning];
+  // Repeupler les notes TAB depuis la portée parente avec le nouvel accordage
+  const parentPart=score.parts.find(p=>p.id===tabPart.parentId);
+  if(parentPart) populateTabFromPart(parentPart, tabPart);
+  buildPartsMgr(); render();
+}
+
+// Modifier la hauteur d'une corde individuellement
+function pmgrEditTuningNote(tabPi, stringIdx){
+  const p=score.parts[tabPi];
+  if(!p||!p.tuning) return;
+  const noteNames=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const cur=p.tuning[stringIdx];
+  const oct=typeof cur==='number'?Math.floor(cur/12)-1:4;
+  const deg=typeof cur==='number'?((cur%12)+12)%12:4;
+  const curName=noteNames[deg]+oct;
+  const input=prompt(`Corde ${stringIdx+1} — note actuelle : ${curName}\nEntrer la nouvelle note (ex: E2, A3, D4) :`, curName);
+  if(!input) return;
+  const m=input.trim().match(/^([A-G]#?b?)(-?\d+)$/i);
+  if(!m){ alert('Format invalide. Exemple : E2, A3, Bb4'); return; }
+  const steps={'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11};
+  const semi_=steps[m[1].toUpperCase()];
+  if(semi_===undefined){ alert('Note non reconnue'); return; }
+  const newMidi=(parseInt(m[2])+1)*12+semi_;
+  saveHistory();
+  p.tuning[stringIdx]=newMidi;
+  // Repeupler la TAB
+  const parentPart=score.parts.find(pp=>pp.id===p.parentId);
+  if(parentPart) populateTabFromPart(parentPart, p);
   buildPartsMgr(); render();
 }
 
@@ -6734,8 +6953,10 @@ function pmgrAddTab(pi, instrIdOverride){
   const instrId=instrIdOverride||p.instrId||'guitar';
   const nMeas=(p.measures?p.measures.length:score.measures.length)||8;
   const cat=INSTRUMENT_CATALOG.find(c=>c.id===instrId)||INSTRUMENT_CATALOG[0];
-  const tuning=(p.tuning&&p.tuning.length>0)?[...p.tuning]:[...(TUNING_SEMIS[cat.tuningKey]||TUNING_SEMIS.guitar)];
-  const strings=p.strings||tuning.length||cat.strings||6;
+  // Résoudre l'accordage via tuningKey explicite du catalogue
+  const tuningKey=cat.tuningKey||instrId;
+  const tuning=[...(TUNING_SEMIS[tuningKey]||TUNING_SEMIS.guitar)];
+  const strings=cat.strings||tuning.length||6;
 
   // Construire des mesures vierges calquées sur la piste parente
   const tabMs=[];
@@ -6753,7 +6974,7 @@ function pmgrAddTab(pi, instrIdOverride){
     id:'TAB_'+p.id+'_'+Date.now().toString(36),
     name:p.name+' TAB',
     autoTab:true, parentId:p.id,
-    instrId:p.instrId||cat.id,
+    instrId:instrId,  // instrId already resolved above (instrIdOverride || p.instrId || 'guitar')
     strings, tuning,
     hasTab:true, measures:tabMs,
     showStaff:false, showTab:true
@@ -6764,7 +6985,98 @@ function pmgrAddTab(pi, instrIdOverride){
   // Insérer juste après la piste parente
   const insertIdx=score.parts.indexOf(p)+1;
   score.parts.splice(insertIdx,0,newTab);
+  // Peupler la TAB depuis les notes de la portée
+  populateTabFromPart(p, newTab);
   updatePartSelector(); buildPartsMgr(); render();
+}
+
+// Convertit les notes d'une portée en positions de frette dans la TAB liée
+// Les notes hors manche sont marquées n.outOfRange=true (affichage rouge)
+function populateTabFromPart(staffPart, tabPart){
+  // S'assurer que le tuning est en demi-tons numériques (pas des noms de notes)
+  let tuning=tabPart.tuning||TUNING_SEMIS.guitar;
+  if(tuning.length && typeof tuning[0]==='string'){
+    tuning=tuning.map(s=>{
+      const m=s.match(/^([A-Gb#]+)(-?\d+)$/i);
+      if(!m) return 40;
+      return (SEMI[m[1].toUpperCase()]||0)+((parseInt(m[2])+1)*12);
+    });
+  }
+  const nStrings=tabPart.strings||tuning.length||6;
+  const maxFret=22;
+
+  // Lire le clefOctave de la piste source pour obtenir le son réel
+  // (ex: clef de Sol 8vb = -1 → les notes sonnent une octave plus bas que écrit)
+  let srcClefOctave=0;
+  for(const m of staffPart.measures){
+    if(typeof m.clefOctave==='number'){ srcClefOctave=m.clefOctave; break; }
+  }
+  // Correction octave : si le fichier est écrit sans transposition instrumentale
+  // mais les notes sont à l'octave 5 (flûte/violon), les ramener à l'octave jouable
+  // en regardant la tessiture de la piste par rapport à l'instrument cible
+  const tuningMid = tuning.reduce((a,b)=>a+b,0)/tuning.length;
+  // Calculer la tessiture moyenne des notes de la piste
+  let noteCount=0;
+  staffPart.measures.forEach(m=>m.notes.forEach(n=>{if(!n.isRest) noteCount++;}));
+  // Trouver le meilleur décalage d'octave : celui qui minimise les notes hors manche
+  // Tester les octaves -2 à +2 et choisir celui avec le moins de notes hors manche
+  let octaveShift=0;
+  if(noteCount>0){
+    let bestScore=Infinity;
+    for(let shift=-24; shift<=24; shift+=12){
+      let outOfRange=0, totalFret=0, playable=0;
+      staffPart.measures.forEach(m=>m.notes.forEach(n=>{
+        if(n.isRest) return;
+        const midi=noteToMidi(n,srcClefOctave)+shift;
+        let found=false;
+        for(let s=nStrings;s>=1;s--){
+          const f=midi-tuning[s-1];
+          if(f>=0&&f<=maxFret){found=true;totalFret+=f;playable++;break;}
+        }
+        if(!found) outOfRange++;
+      }));
+      // Score = notes hors manche * 1000 + frette totale moyenne (favorise frettes basses)
+      const score = outOfRange*1000 + (playable>0?totalFret/playable:999);
+      if(score < bestScore){ bestScore=score; octaveShift=shift; }
+    }
+  }
+
+  staffPart.measures.forEach((sm, mi)=>{
+    const tm=tabPart.measures[mi];
+    if(!tm) return;
+    tm.timeNum=sm.timeNum; tm.timeDen=sm.timeDen;
+    tm.tempo=sm.tempo; tm.key=sm.key;
+    tm.repeatStart=sm.repeatStart; tm.repeatEnd=sm.repeatEnd;
+    tm.volta=sm.volta; tm.rehearsal=sm.rehearsal;
+
+    tm.notes = sm.notes.map(n=>{
+      const tn=Object.assign({},n);
+      if(n.isRest){ tn.string=1; tn.fret=0; return tn; }
+      const midi=noteToMidi(n, srcClefOctave)+octaveShift;
+      let best=null;
+      for(let s=nStrings; s>=1; s--){
+        const fret=midi-tuning[s-1];
+        if(fret>=0&&fret<=maxFret){
+          if(!best||fret<best.fret||(fret===best.fret&&
+            Math.abs(s-Math.round(nStrings/2))<Math.abs(best.string-Math.round(nStrings/2)))){
+            best={string:s,fret};
+          }
+        }
+      }
+      if(best){
+        tn.string=best.string; tn.fret=best.fret; tn.outOfRange=false;
+      } else {
+        let closestS=1, closestFret=0, minDist=Infinity;
+        for(let s=1;s<=nStrings;s++){
+          const f=midi-tuning[s-1];
+          const dist=f<0?-f:Math.max(0,f-maxFret);
+          if(dist<minDist){minDist=dist;closestS=s;closestFret=Math.max(0,Math.min(maxFret,f));}
+        }
+        tn.string=closestS; tn.fret=closestFret; tn.outOfRange=true;
+      }
+      return tn;
+    });
+  });
 }
 
 function pmgrSyncTab(pi){
