@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Éditeur MusicXML</title>
@@ -132,16 +135,86 @@ pre#xml-out{font-family:'JetBrains Mono',monospace;font-size:10px;background:#1e
   font-weight:normal;font-style:normal;
 }
 @media print{body>*:not(#score-area){display:none!important}#score-area{padding:0;background:none;overflow:visible}#a4{box-shadow:none}}
+
+/* ── Écran d'accueil ── */
+#welcome-ov{position:fixed;inset:0;background:#1a1a2e;z-index:2000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0}
+#welcome-ov.gone{display:none}
+.wlc-box{background:#faf8f3;border-radius:10px;width:520px;max-width:96vw;box-shadow:0 12px 60px rgba(0,0,0,.5);overflow:hidden}
+.wlc-head{background:#1a1a2e;padding:22px 24px 16px;text-align:center}
+.wlc-logo{font-family:'Crimson Pro',serif;font-size:22px;font-weight:600;color:#fff;letter-spacing:.02em}
+.wlc-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:3px;letter-spacing:.06em;text-transform:uppercase}
+.wlc-body{padding:18px 20px 20px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wlc-btn{background:#fff;border:1px solid #c8c0aa;border-radius:7px;padding:14px 10px 10px;cursor:pointer;text-align:center;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:5px}
+.wlc-btn:hover{border-color:#c8541a;background:#fff5f0;transform:translateY(-1px);box-shadow:0 3px 12px rgba(200,84,26,.15)}
+.wlc-btn .ico{font-size:26px;line-height:1}
+.wlc-btn .lbl{font-size:12px;font-weight:600;color:#1a1a2e}
+.wlc-btn .desc{font-size:10px;color:#999}
+.wlc-recent{grid-column:1/-1;border-top:1px solid #e8e4dc;padding-top:10px}
+.wlc-rec-title{font-size:10px;font-weight:600;color:#aaa;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.wlc-rec-list{display:flex;flex-direction:column;gap:3px;max-height:90px;overflow-y:auto}
+.wlc-rec-item{display:flex;align-items:center;justify-content:space-between;padding:3px 7px;border-radius:4px;cursor:pointer;font-size:11px}
+.wlc-rec-item:hover{background:#f0ece4}
+.wlc-rec-name{font-weight:500;color:#1a1a2e}
+.wlc-rec-date{font-size:9px;color:#aaa;font-family:'JetBrains Mono',monospace}
+
+/* ── Dialogue nouvelle partition avec pistes ── */
+.track-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.track-type-btn{background:#fff;border:2px solid #c8c0aa;border-radius:7px;padding:12px 6px 9px;cursor:pointer;text-align:center;transition:all .15s}
+.track-type-btn:hover,.track-type-btn.on{border-color:#c8541a;background:#fff5f0}
+.track-type-btn .ico{font-size:22px;display:block;margin-bottom:4px}
+.track-type-btn .lbl{font-size:11px;font-weight:600;color:#1a1a2e}
+.track-type-pane{display:none;border:1px solid #d8d0c8;border-radius:5px;padding:10px 12px;margin-bottom:10px;background:#fffefa}
+.track-type-pane.on{display:block}
+.track-queue{display:flex;flex-direction:column;gap:3px;margin-bottom:8px;min-height:28px}
+.track-queue-item{display:flex;align-items:center;gap:6px;background:#f0ece4;border-radius:4px;padding:3px 7px;font-size:11px}
+.track-queue-item .tq-badge{background:#c8541a;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:600}
+.track-queue-item .tq-rm{background:none;border:none;cursor:pointer;color:#aaa;font-size:13px;margin-left:auto;padding:0}
+.track-queue-item .tq-rm:hover{color:#c8541a}
+
+/* ── Onglet Partition — section pistes ── */
+.parts-mgr{display:flex;flex-direction:column;gap:4px}
+.part-entry{border:1px solid #d8d0c8;border-radius:5px;overflow:hidden;background:#fff}
+.part-entry.drag-over{outline:2px solid #c8541a;background:#fff5f0}
+.part-entry[draggable]{cursor:default}
+.part-drag-handle{cursor:grab;color:#bbb;font-size:14px;padding:0 3px;flex-shrink:0}
+.part-drag-handle:active{cursor:grabbing}
+.part-instr-edit{display:flex;gap:4px;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid #e8e4dc}
+.rehearsal-order-item{display:flex;align-items:center;gap:5px;background:#f5f2ea;border:1px solid #d8d0c8;border-radius:3px;padding:3px 6px;font-size:10px;cursor:grab}
+.rehearsal-order-item.drag-over{outline:2px solid #c8541a}
+/* Piste liée (autoTab) — indentée sous sa piste parente */
+.part-linked{border:1px solid #d0e8d0;border-radius:4px;margin:4px 0 0 10px;background:#f5fbf5;overflow:hidden}
+.part-linked-head{display:flex;align-items:center;gap:5px;padding:4px 7px;background:#e8f5e8;cursor:pointer;font-size:10px}
+.part-linked-head:hover{background:#ddf0dd}
+.part-linked-body{padding:5px 8px;display:none}
+.part-linked.open .part-linked-body{display:block}
+.part-linked-type{font-size:8px;background:#2a8060;color:#fff;border-radius:2px;padding:1px 4px;font-weight:600}
+.part-linked-type.tab{background:#7a3a00}
+.part-linked-type.staff{background:#2a6496}
+/* Boutons d'ajout de piste liée */
+.add-linked-btn{font-size:9px;background:#f0f8f0;border:1px dashed #88bb88;border-radius:3px;padding:3px 7px;cursor:pointer;color:#2a6030;width:100%;margin-top:3px;text-align:left}
+.add-linked-btn:hover{background:#e0f0e0;border-color:#449944}
+.part-entry-head{display:flex;align-items:center;gap:6px;padding:5px 8px;background:#ede9e0;cursor:pointer}
+.part-entry-head:hover{background:#e4dfd6}
+.part-entry-name{font-size:11px;font-weight:600;flex:1;color:#1a1a2e}
+.part-entry-badge{font-size:9px;background:#2a6496;color:#fff;border-radius:3px;padding:1px 5px;font-weight:600}
+.part-entry-badge.tab{background:#7a3a00}
+.part-entry-badge.piano{background:#2d2d4e}
+.part-entry-badge.voice{background:#4a6a2a}
+.part-entry-body{padding:7px 8px;display:none}
+.part-entry.open .part-entry-body{display:block}
+.part-action-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
 .page-break-line{
-  width:100%;height:2px;margin:8px 0;
-  background:repeating-linear-gradient(90deg,#c8541a 0,#c8541a 8px,transparent 8px,transparent 16px);
-  opacity:0.5;position:relative;
+  width:100%;margin:12px 0 8px;position:relative;display:flex;align-items:center;justify-content:center;
 }
-.page-break-line::after{
-  content:'— page —';
-  position:absolute;left:50%;transform:translateX(-50%);
-  top:-8px;font-size:10px;color:#c8541a;background:#d0ccc4;padding:0 6px;
-  font-family:'DM Sans',sans-serif;letter-spacing:.08em;opacity:0.8;
+.page-break-line::before,.page-break-line::after{
+  content:'';flex:1;height:1px;background:#c8c0aa;
+}
+.page-break-line::before{margin-right:8px}
+.page-break-line::after{margin-left:8px}
+.page-break-line .pbl-label{
+  font-size:9px;color:#c8541a;white-space:nowrap;
+  font-family:'DM Sans',sans-serif;letter-spacing:.1em;text-transform:uppercase;
+  background:#d0ccc4;padding:0 8px;border:1px solid #c8541a;border-radius:3px;
 }
 .durpal{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;margin-bottom:5px}
 .durbtn{background:#1a1a2e;border:1px solid #333;border-radius:3px;padding:5px 1px 3px;cursor:pointer;text-align:center;color:rgba(255,255,255,.7);transition:all .15s;min-width:0}
@@ -161,6 +234,36 @@ pre#xml-out{font-family:'JetBrains Mono',monospace;font-size:10px;background:#1e
 </head>
 <body>
 
+<div id="welcome-ov">
+  <div class="wlc-box">
+    <div class="wlc-head">
+      <div class="wlc-logo">🎼 Éditeur MusicXML</div>
+      <div class="wlc-sub">Que voulez-vous faire ?</div>
+    </div>
+    <div class="wlc-body">
+      <div class="wlc-btn" onclick="wlcNew()">
+        <span class="ico">⊕</span>
+        <span class="lbl">Nouvelle partition</span>
+        <span class="desc">Choisir les pistes</span>
+      </div>
+      <div class="wlc-btn" onclick="wlcOpen()">
+        <span class="ico">📂</span>
+        <span class="lbl">Ouvrir un fichier</span>
+        <span class="desc">MusicXML ou MXL</span>
+      </div>
+      <div class="wlc-btn" id="wlc-recent-btn" onclick="wlcToggleRecent()" style="display:none">
+        <span class="ico">🕐</span>
+        <span class="lbl">Fichiers récents</span>
+        <span class="desc">Recharger une session</span>
+      </div>
+      <div class="wlc-recent" id="wlc-recent-zone" style="display:none">
+        <div class="wlc-rec-title">Récents</div>
+        <div class="wlc-rec-list" id="wlc-rec-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toolbar">
   <div class="tbg">
     <span class="tblbl">Fichier</span>
@@ -175,6 +278,7 @@ pre#xml-out{font-family:'JetBrains Mono',monospace;font-size:10px;background:#1e
 
 
 
+  <button class="tbt" id="btn-instr-props" onclick="openInstrDialog()" title="Propriétés instrument">🎸 Instrument</button>
   <div class="tbg" id="part-sel-grp" style="display:none">
     <span class="tblbl">Éditer piste</span>
     <select id="part-sel" class="modbtn" style="padding:3px 7px;cursor:pointer" onchange="switchActivePart(parseInt(this.value))"></select>
@@ -313,7 +417,7 @@ pre#xml-out{font-family:'JetBrains Mono',monospace;font-size:10px;background:#1e
           <input type="text" class="pinp" id="lyric-inp" placeholder="ex: a-mour" oninput="applyLyricLive(this.value)">
         </div>
         <div class="prow"><label class="plbl">Couplet</label>
-          <select class="pinp" id="verse-sel"><option>1</option><option>2</option><option>3</option></select>
+          <select class="pinp" id="verse-sel"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select>
         </div>
         <div class="prow"><label class="plbl">Police</label>
           <select class="pinp" id="lyric-font" onchange="score.lyricFont=this.value;render()">
@@ -385,20 +489,20 @@ pre#xml-out{font-family:'JetBrains Mono',monospace;font-size:10px;background:#1e
             <optgroup label="Sol">
               <option value="G_2">Sol ligne 2 (standard)</option>
               <option value="G_1">Sol ligne 1 (French)</option>
-              <option value="G_2_8down">Sol 8vb (ténor vocal)</option>
+              <option value="G_2_8down">Sol 8vb (ténor vocal / guitare)</option>
+              <option value="G_2_15down">Sol 8vb basse (Sol 15mb)</option>
               <option value="G_2_8up">Sol 8va</option>
-              <option value="G_2_15down">Sol 15mb</option>
             </optgroup>
             <optgroup label="Fa">
-              <option value="F_4">Fa ligne 4 (standard)</option>
+              <option value="F_4">Fa ligne 4 (basse standard)</option>
               <option value="F_3">Fa ligne 3 (baryton)</option>
               <option value="F_5">Fa ligne 5 (sub-basse)</option>
-              <option value="F_4_8down">Fa 8vb</option>
+              <option value="F_4_8down">Fa 8vb (basse profonde)</option>
               <option value="F_4_8up">Fa 8va</option>
             </optgroup>
             <optgroup label="Ut">
               <option value="C_1">Ut ligne 1 (soprano)</option>
-              <option value="C_2">Ut ligne 2 (mezzo)</option>
+              <option value="C_2">Ut ligne 2 (mezzo-soprano)</option>
               <option value="C_3">Ut ligne 3 (alto)</option>
               <option value="C_4">Ut ligne 4 (ténor)</option>
               <option value="C_5">Ut ligne 5 (baryton)</option>
@@ -549,6 +653,21 @@ pre#xml-out{font-family:'JetBrains Mono',monospace;font-size:10px;background:#1e
   <button class="btn btn-s" style="font-size:10px;width:100%" onclick="undoRepeat()">↩ Annuler</button>
 </div>
 </div>
+      <div class="psec">
+        <div class="psec-t" onclick="togglePsec(this)">Sauts de ligne / page</div>
+        <div class="psec-body">
+          <div style="font-size:9px;color:#888;margin-bottom:6px">Forcer un saut avant cette mesure</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+            <button class="rep-btn" id="btn-new-system" onclick="togBreak('system')">↵ Fin de ligne</button>
+            <button class="rep-btn" id="btn-new-page"   onclick="togBreak('page')">⊞ Fin de page</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px">
+            <button class="btn btn-s" style="font-size:10px" onclick="clearBreak()">✕ Supprimer</button>
+            <button class="btn btn-s" style="font-size:10px" onclick="clearAllBreaks()">✕ Tous</button>
+          </div>
+          <div id="break-status" style="font-size:9px;color:#c8541a;margin-top:4px;font-style:italic"></div>
+        </div>
+      </div>
     </div>
     <div class="spanel" id="ppartition">
       <div class="psec">
@@ -564,76 +683,66 @@ pre#xml-out{font-family:'JetBrains Mono',monospace;font-size:10px;background:#1e
         <div class="prow"><label class="plbl">Révision</label><input type="text" class="pinp" id="m-revision" value="" placeholder="Brouillon, Final…" oninput="score.revision=this.value"></div>
 </div>
 </div>
-      <div class="psec">
-        <div class="psec-t" onclick="togglePsec(this)">Instrument</div>
-<div class="psec-body"><div class="prow"><label class="plbl">Type</label>
-          <select class="pinp" id="instr-sel" onchange="changeInstr()">
-            <option value="guitar">Guitare 6 cordes</option>
-            <option value="bass">Basse 4 cordes</option>
-            <option value="ukulele">Ukulélé 4 cordes</option>
-          </select>
-        </div>
-        <div class="prow"><label class="plbl">Accordage</label>
-          <select class="pinp" id="tuning-sel"><option>Standard EADGBe</option><option>Drop D DADGBe</option><option>Open G DGDGBd</option></select>
-        </div>
-        <div class="prow"><label class="plbl">Capodastre</label><input type="number" class="pinp" id="capo-inp" min="0" max="12" value="0"></div>
-</div>
-</div>
       <div class="psec" id="sec-rehearsals" style="display:none">
         <div class="psec-t" onclick="togglePsec(this)">Morceaux / Sections</div>
         <div class="psec-body">
           <div style="font-size:9px;color:#888;margin-bottom:4px">Cliquer pour naviguer</div>
-          <div id="rehearsal-list" style="max-height:180px;overflow-y:auto"></div>
+          <div id="rehearsal-list" style="max-height:150px;overflow-y:auto"></div>
         </div>
       </div>
-      <div class="psec">
-        <div class="psec-t" onclick="togglePsec(this)">Affichage</div>
+      <!-- Instrument héritage caché mais IDs nécessaires -->
+      <input type="hidden" id="instr-sel" value="guitar">
+      <input type="hidden" id="tuning-sel" value="">
+      <input type="hidden" id="capo-inp" value="0">
+      <input type="hidden" id="mpr-sel" value="4">
+      <input type="hidden" id="spp-sel" value="0">
+
+      <div class="psec" id="sec-rehearsals-order" style="display:none">
+        <div class="psec-t" onclick="togglePsec(this)">Ordre des morceaux</div>
         <div class="psec-body">
+          <div style="font-size:9px;color:#aaa;margin-bottom:4px">⠿ Glisser pour réordonner</div>
+          <div id="rehearsal-order-list" style="display:flex;flex-direction:column;gap:3px"></div>
+        </div>
+      </div>
+      <div class="psec on" id="psec-affichage">
+        <div class="psec-t on" onclick="togglePsec(this)">Pistes &amp; Affichage</div>
+        <div class="psec-body">
+          <!-- Liste compacte des pistes générée par buildPartsMgr -->
+          <div id="parts-mgr-list" class="parts-mgr" style="margin-bottom:6px"></div>
+          <button class="applybtn" style="margin-bottom:8px;font-size:11px" onclick="openAddPartDialog()">⊕ Ajouter une piste…</button>
+          <!-- Séparateur -->
+          <div style="border-top:1px solid #c8c0aa;padding-top:7px">
           <div class="prow"><label class="plbl">Zoom</label>
             <div style="display:flex;align-items:center;gap:4px">
               <button onclick="stepZoom(-10)" style="background:#2d2d4e;border:1px solid #444;color:rgba(255,255,255,.8);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;line-height:1">◀</button>
               <span id="zoom-chip-side" style="font-size:11px;color:#666;min-width:36px;text-align:center">100%</span>
-              <button onclick="stepZoom(10)"  style="background:#2d2d4e;border:1px solid #444;color:rgba(255,255,255,.8);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;line-height:1">▶</button>
+              <button onclick="stepZoom(10)" style="background:#2d2d4e;border:1px solid #444;color:rgba(255,255,255,.8);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;line-height:1">▶</button>
             </div>
           </div>
           <input type="hidden" id="zoom-r" value="100">
-          <div class="prow"><label class="plbl">Sauts XML</label>
-            <label style="display:flex;align-items:center;gap:4px;font-size:11px">
-              <input type="checkbox" id="use-xml-breaks" checked
-                onchange="score.useXmlBreaks=this.checked;render()"> Respecter
-            </label>
-          </div>
           <div class="prow"><label class="plbl">Taille portée</label>
             <div style="display:flex;align-items:center;gap:4px">
               <button onclick="stepStaffScale(-0.1)" style="background:#2d2d4e;border:1px solid #444;color:rgba(255,255,255,.8);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;line-height:1">◀</button>
               <span id="staff-scale-lbl" style="font-size:11px;color:#666;min-width:36px;text-align:center">100%</span>
-              <button onclick="stepStaffScale(0.1)"  style="background:#2d2d4e;border:1px solid #444;color:rgba(255,255,255,.8);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;line-height:1">▶</button>
+              <button onclick="stepStaffScale(0.1)" style="background:#2d2d4e;border:1px solid #444;color:rgba(255,255,255,.8);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;line-height:1">▶</button>
             </div>
           </div>
           <input type="hidden" id="staff-scale-r" value="1.0">
-          <div class="prow"><label class="plbl">Mesures/ligne</label>
-            <select class="pinp" id="mpr-sel" onchange="setMPR(parseInt(this.value))">
-              <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-              <option value="4" selected>4</option><option value="5">5</option><option value="6">6</option>
-              <option value="7">7</option><option value="8">8</option><option value="9">9</option>
-            </select>
-          </div>
-          <div class="prow"><label class="plbl">Systèmes/page</label>
-            <select class="pinp" id="spp-sel" onchange="setSPP(parseInt(this.value))">
-              <option value="0" selected>Auto</option>
-              <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-              <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-            </select>
+          <div class="prow"><label class="plbl">Sauts XML</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:11px">
+              <input type="checkbox" id="use-xml-breaks" checked onchange="score.useXmlBreaks=this.checked;render()"> Respecter
+            </label>
           </div>
           <div id="parts-visibility">
             <div class="prow"><label class="plbl">Portée seule</label><input type="checkbox" id="only-staff" onchange="render()"></div>
             <div class="prow"><label class="plbl">TAB seule</label><input type="checkbox" id="only-tab" onchange="render()"></div>
           </div>
           <div id="merge-tab-row" style="display:none">
-            <div class="prow" style="margin-top:6px;padding-top:6px;border-top:1px solid #c8c0aa">
+            <div class="prow" style="margin-top:4px;padding-top:4px;border-top:1px solid #c8c0aa">
               <label class="plbl">Fusionner TAB</label>
               <input type="checkbox" id="merge-tab-chk" onchange="score.mergeTab=this.checked;render()">
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -666,24 +775,133 @@ pre#xml-out{font-family:'JetBrains Mono',monospace;font-size:10px;background:#1e
 <input type="file" id="file-inp" accept=".xml,.musicxml,.mxl" style="display:none" onchange="loadFile(event)">
 
 <div class="dlg-ov" id="dlg-new">
-  <div class="dlg">
+  <div class="dlg" style="width:520px;max-width:96vw">
     <div class="dlg-h"><span class="dlg-title">Nouvelle partition</span><button class="dlg-x" onclick="closeDlg('dlg-new')">✕</button></div>
     <div class="dlg-b">
+      <!-- Métadonnées de base -->
       <div class="fg"><label class="fl">Titre</label><input class="fi" id="nw-title" value="Nouvelle partition"></div>
       <div class="fg"><label class="fl">Compositeur</label><input class="fi" id="nw-composer" value=""></div>
       <div class="frow">
         <div class="fg"><label class="fl">Tempo (BPM)</label><input type="number" class="fi" id="nw-tempo" value="80"></div>
         <div class="fg"><label class="fl">Métrique</label>
           <select class="fi" id="nw-time">
-            <option value="4/4" selected>4/4</option>
-            <option value="3/4">3/4</option>
-            <option value="2/4">2/4</option>
-            <option value="6/8">6/8</option>
-            <option value="2/2">2/2</option>
+            <option value="4/4" selected>4/4</option><option value="3/4">3/4</option>
+            <option value="2/4">2/4</option><option value="6/8">6/8</option><option value="2/2">2/2</option>
           </select>
         </div>
       </div>
       <div class="fg"><label class="fl">Nombre de mesures</label><input type="number" class="fi" id="nw-meas" value="8" min="1" max="64"></div>
+
+      <!-- Sélecteur type de piste -->
+      <div style="border-top:1px solid #e8e4dc;margin-top:10px;padding-top:12px">
+        <div style="font-size:11px;font-weight:600;color:#555;margin-bottom:2px">Composer vos pistes</div>
+        <div style="font-size:10px;color:#999;margin-bottom:8px">Ajoutez au moins une piste, puis cliquez Créer.</div>
+        <div class="track-type-grid">
+          <div class="track-type-btn" id="tt-strings" onclick="selectTrackType('strings')">
+            <span class="ico">🎸</span><span class="lbl">Instrument à cordes</span>
+          </div>
+          <div class="track-type-btn" id="tt-piano" onclick="selectTrackType('piano')">
+            <span class="ico">🎹</span><span class="lbl">Piano / Clavier</span>
+          </div>
+          <div class="track-type-btn" id="tt-voice" onclick="selectTrackType('voice')">
+            <span class="ico">🎤</span><span class="lbl">Voix</span>
+          </div>
+        </div>
+
+        <!-- Panneau cordes -->
+        <div class="track-type-pane" id="tt-pane-strings">
+          <div class="frow" style="margin-bottom:7px">
+            <div class="fg"><label class="fl">Instrument</label>
+              <select class="fi" id="nwt-strings-instr" onchange="nwtStringsInstrChange()">
+                <optgroup label="Guitare">
+                  <option value="guitar">Guitare 6c (standard)</option>
+                  <option value="guitar_dropD">Guitare Drop D</option>
+                  <option value="guitar_dadgad">Guitare DADGAD</option>
+                  <option value="guitar_openG">Guitare Open G</option>
+                  <option value="guitar_openD">Guitare Open D</option>
+                  <option value="guitar7">Guitare 7 cordes</option>
+                </optgroup>
+                <optgroup label="Basse">
+                  <option value="bass">Basse 4 cordes</option>
+                  <option value="bass5">Basse 5 cordes</option>
+                  <option value="bass6">Basse 6 cordes</option>
+                </optgroup>
+                <optgroup label="Banjos">
+                  <option value="banjo5">Banjo 5 cordes</option>
+                  <option value="banjo4">Banjo 4 cordes (ténor)</option>
+                  <option value="banjo_gdae">Banjo GDAE (irlandais)</option>
+                </optgroup>
+                <optgroup label="Cordes pincées">
+                  <option value="ukulele">Ukulélé</option>
+                  <option value="mandolin">Mandoline</option>
+                  <option value="bouzouki_gr">Bouzouki grec (CGDA)</option>
+                  <option value="bouzouki_ir">Bouzouki irlandais (GDAD)</option>
+                  <option value="nouzoki">Nouzoki / Cittern</option>
+                  <option value="oud">Oud (6 chœurs)</option>
+                </optgroup>
+                <optgroup label="Cordes archet">
+                  <option value="violin">Violon (GDAE)</option>
+                  <option value="viola">Alto (CGDA)</option>
+                  <option value="cello">Violoncelle (CGDA)</option>
+                  <option value="contrebasse">Contrebasse (EADG)</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="fg"><label class="fl">Nom de la piste</label><input class="fi" id="nwt-strings-name" placeholder="ex: Guitare 1"></div>
+          </div>
+          <div class="fg" style="display:flex;align-items:center;gap:8px">
+            <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+              <input type="checkbox" id="nwt-strings-tab" checked> Inclure la tablature
+            </label>
+          </div>
+          <button class="applybtn" style="margin-top:8px;font-size:11px" onclick="nwtAddTrack('strings')">⊕ Ajouter cette piste</button>
+        </div>
+
+        <!-- Panneau piano -->
+        <div class="track-type-pane" id="tt-pane-piano">
+          <div class="frow" style="margin-bottom:7px">
+            <div class="fg"><label class="fl">Clef main droite</label>
+              <select class="fi" id="nwt-piano-clef-r">
+                <option value="G">Sol (standard)</option>
+                <option value="F">Fa</option>
+              </select>
+            </div>
+            <div class="fg"><label class="fl">Clef main gauche</label>
+              <select class="fi" id="nwt-piano-clef-l">
+                <option value="F">Fa (standard)</option>
+                <option value="G">Sol</option>
+              </select>
+            </div>
+          </div>
+          <div class="fg"><label class="fl">Nom</label><input class="fi" id="nwt-piano-name" value="Piano"></div>
+          <button class="applybtn" style="margin-top:8px;font-size:11px" onclick="nwtAddTrack('piano')">⊕ Ajouter piano (main droite + gauche)</button>
+        </div>
+
+        <!-- Panneau voix -->
+        <div class="track-type-pane" id="tt-pane-voice">
+          <!-- Presets chœur rapides -->
+          <div style="font-size:10px;font-weight:600;color:#555;margin-bottom:5px">Préconfigurations :</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-bottom:9px">
+            <button class="btn btn-s" style="font-size:10px" onclick="nwtVoicePreset('SATB')">SATB (4 voix)</button>
+            <button class="btn btn-s" style="font-size:10px" onclick="nwtVoicePreset('SA')">SA (2 voix aiguës)</button>
+            <button class="btn btn-s" style="font-size:10px" onclick="nwtVoicePreset('TB')">TB (2 voix graves)</button>
+            <button class="btn btn-s" style="font-size:10px" onclick="nwtVoicePreset('SSA')">SSA (trio féminin)</button>
+          </div>
+          <div style="font-size:10px;font-weight:600;color:#555;margin-bottom:5px">Ou ajoutez une à une :</div>
+          <div id="nwt-voice-rows" style="display:flex;flex-direction:column;gap:4px;margin-bottom:7px"></div>
+          <button class="btn btn-s" style="font-size:10px;width:100%" onclick="nwtAddVoiceRow()">+ Ajouter une voix</button>
+          <button class="applybtn" style="margin-top:8px;font-size:11px" onclick="nwtAddTrack('voice')">⊕ Ajouter ces voix</button>
+        </div>
+
+        <!-- File d'attente des pistes à créer -->
+        <div style="border-top:1px solid #e8e4dc;margin-top:10px;padding-top:8px">
+          <div style="font-size:10px;font-weight:600;color:#555;margin-bottom:2px">Pistes à créer :</div>
+          <div style="font-size:9px;color:#aaa;margin-bottom:5px">Glisser ⠿ pour réordonner</div>
+          <div class="track-queue" id="nwt-queue">
+            <div style="font-size:10px;color:#aaa;font-style:italic;padding:4px" id="nwt-queue-empty">Aucune piste ajoutée — la partition utilisera une guitare standard</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="dlg-f">
       <button class="btn btn-s" onclick="closeDlg('dlg-new')">Annuler</button>
@@ -728,6 +946,105 @@ pre#xml-out{font-family:'JetBrains Mono',monospace;font-size:10px;background:#1e
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<!-- Dialogue : Ajouter une piste à une partition existante -->
+<div class="dlg-ov" id="dlg-add-part">
+  <div class="dlg" style="width:480px;max-width:96vw">
+    <div class="dlg-h"><span class="dlg-title">Ajouter une piste</span><button class="dlg-x" onclick="closeDlg('dlg-add-part')">✕</button></div>
+    <div class="dlg-b">
+      <div class="track-type-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+        <div class="track-type-btn" id="ap-tt-strings" onclick="apSelectType('strings')">
+          <span class="ico">🎸</span><span class="lbl">Cordes + TAB</span>
+        </div>
+        <div class="track-type-btn" id="ap-tt-piano" onclick="apSelectType('piano')">
+          <span class="ico">🎹</span><span class="lbl">Piano</span>
+        </div>
+        <div class="track-type-btn" id="ap-tt-voice" onclick="apSelectType('voice')">
+          <span class="ico">🎤</span><span class="lbl">Voix</span>
+        </div>
+      </div>
+
+      <!-- cordes -->
+      <div class="track-type-pane" id="ap-pane-strings">
+        <div class="frow" style="margin-bottom:7px">
+          <div class="fg"><label class="fl">Instrument</label>
+            <select class="fi" id="ap-strings-instr" onchange="apStringsInstrChange()">
+              <optgroup label="Guitare">
+                <option value="guitar">Guitare 6c (standard)</option>
+                <option value="guitar_dropD">Guitare Drop D</option>
+                <option value="guitar_dadgad">Guitare DADGAD</option>
+                <option value="guitar_openG">Guitare Open G</option>
+                <option value="guitar_openD">Guitare Open D</option>
+                <option value="guitar7">Guitare 7 cordes</option>
+              </optgroup>
+              <optgroup label="Basse">
+                <option value="bass">Basse 4 cordes</option>
+                <option value="bass5">Basse 5 cordes</option>
+                <option value="bass6">Basse 6 cordes</option>
+              </optgroup>
+              <optgroup label="Banjos">
+                <option value="banjo5">Banjo 5 cordes</option>
+                <option value="banjo4">Banjo 4 cordes (ténor)</option>
+                <option value="banjo_gdae">Banjo GDAE (irlandais)</option>
+              </optgroup>
+              <optgroup label="Cordes pincées">
+                <option value="ukulele">Ukulélé</option>
+                <option value="mandolin">Mandoline</option>
+                <option value="bouzouki_gr">Bouzouki grec (CGDA)</option>
+                <option value="bouzouki_ir">Bouzouki irlandais (GDAD)</option>
+                <option value="nouzoki">Nouzoki / Cittern</option>
+                <option value="oud">Oud (6 chœurs)</option>
+              </optgroup>
+              <optgroup label="Cordes archet">
+                <option value="violin">Violon (GDAE)</option>
+                <option value="viola">Alto (CGDA)</option>
+                <option value="cello">Violoncelle (CGDA)</option>
+                <option value="contrebasse">Contrebasse (EADG)</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="fg"><label class="fl">Nom</label><input class="fi" id="ap-strings-name" placeholder="Guitare 2"></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px">
+          <input type="checkbox" id="ap-strings-tab" checked> Inclure la tablature
+        </label>
+      </div>
+
+      <!-- piano -->
+      <div class="track-type-pane" id="ap-pane-piano">
+        <div class="fg"><label class="fl">Nom</label><input class="fi" id="ap-piano-name" value="Piano"></div>
+        <div class="frow" style="margin-top:6px">
+          <div class="fg"><label class="fl">Clef main droite</label>
+            <select class="fi" id="ap-piano-clef-r">
+              <option value="G">Sol</option><option value="F">Fa</option>
+            </select>
+          </div>
+          <div class="fg"><label class="fl">Clef main gauche</label>
+            <select class="fi" id="ap-piano-clef-l">
+              <option value="F">Fa</option><option value="G">Sol</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- voix -->
+      <div class="track-type-pane" id="ap-pane-voice">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-bottom:8px">
+          <button class="btn btn-s" style="font-size:10px" onclick="apVoicePreset('SATB')">SATB</button>
+          <button class="btn btn-s" style="font-size:10px" onclick="apVoicePreset('SA')">SA</button>
+          <button class="btn btn-s" style="font-size:10px" onclick="apVoicePreset('TB')">TB</button>
+          <button class="btn btn-s" style="font-size:10px" onclick="apVoicePreset('SSA')">SSA</button>
+        </div>
+        <div id="ap-voice-rows" style="display:flex;flex-direction:column;gap:4px;margin-bottom:7px"></div>
+        <button class="btn btn-s" style="font-size:10px;width:100%" onclick="apAddVoiceRow()">+ Ajouter une voix</button>
+      </div>
+    </div>
+    <div class="dlg-f">
+      <button class="btn btn-s" onclick="closeDlg('dlg-add-part')">Annuler</button>
+      <button class="btn btn-p" onclick="apConfirm()">⊕ Ajouter</button>
+    </div>
+  </div>
+</div>
 <script>
 // ═══════════════════════════════════════════════════════
 // DATA MODEL
@@ -753,6 +1070,24 @@ const TUNING_SEMIS = {
   mandolin:    [76,69,62,55],          // E5 A4 D4 G3
   banjo5:      [62,59,55,50,62],       // G4 D4 G3 D3 G4(5e)
   banjo4:      [62,59,55,50],          // ténor/plectrum
+  // Banjo GDAE (irlandais/jazz ténor)
+  banjo_gdae:  [62,57,50,43],          // G4 D4 A3 E3
+  // Bouzouki grec (CGDA standard, parfois DGBE)
+  bouzouki_gr: [48,55,62,69],          // C3 G3 D4 A4 (doubles cordes)
+  // Bouzouki irlandais (GDAD)
+  bouzouki_ir: [62,57,50,62],          // G4 D4 A3 D4
+  // Nouzoki (variante bouzouki G tuning)
+  nouzoki:     [55,62,69,74],          // G3 D4 A4 D5
+  // Oud (La re sol do fa la - sans frettes)
+  oud:         [57,50,43,36,29,57],    // A2 D2 G2 C2 F1 A2 (approx)
+  // Violoncelle CGDA
+  cello:       [48,55,62,69],          // C2 G2 D3 A3
+  // Contrebasse EADG
+  contrebasse: [28,33,38,43],          // E1 A1 D2 G2
+  // Violon GDAE
+  violin:      [55,62,69,76],          // G3 D4 A4 E5
+  // Alto CGDA
+  viola:       [48,55,62,69],          // C3 G3 D4 A4
   custom:      []
 };
 
@@ -769,12 +1104,20 @@ const INSTRUMENT_CATALOG = [
   {id:'bass6',       label:'Basse 6 cordes',       strings:6, tuningKey:'bass6',        clef:'F', clefOctave:-1, hasTab:true},
   {id:'ukulele',     label:'Ukulélé',              strings:4, tuningKey:'ukulele',      clef:'G', clefOctave:0,  hasTab:true},
   {id:'mandolin',    label:'Mandoline',             strings:4, tuningKey:'mandolin',     clef:'G', clefOctave:0,  hasTab:true},
-  {id:'banjo5',      label:'Banjo 5 cordes',       strings:5, tuningKey:'banjo5',       clef:'G', clefOctave:0,  hasTab:true},
-  {id:'banjo4',      label:'Banjo 4 cordes (ténor)',strings:4,tuningKey:'banjo4',       clef:'G', clefOctave:0,  hasTab:true},
-  {id:'piano',       label:'Piano',                strings:0, tuningKey:null,           clef:'G', clefOctave:0,  hasTab:false},
-  {id:'violin',      label:'Violon',               strings:0, tuningKey:null,           clef:'G', clefOctave:0,  hasTab:false},
-  {id:'voice',       label:'Voix',                 strings:0, tuningKey:null,           clef:'G', clefOctave:0,  hasTab:false},
-  {id:'custom',      label:'Personnalisé…',        strings:6, tuningKey:'custom',       clef:'G', clefOctave:0,  hasTab:true},
+  {id:'banjo5',      label:'Banjo 5 cordes',            strings:5, tuningKey:'banjo5',      clef:'G', clefOctave:0,  hasTab:true},
+  {id:'banjo4',      label:'Banjo 4 cordes (ténor)',     strings:4, tuningKey:'banjo4',      clef:'G', clefOctave:0,  hasTab:true},
+  {id:'banjo_gdae',  label:'Banjo GDAE (irlandais)',     strings:4, tuningKey:'banjo_gdae',  clef:'G', clefOctave:0,  hasTab:true},
+  {id:'bouzouki_gr', label:'Bouzouki grec (CGDA)',       strings:4, tuningKey:'bouzouki_gr', clef:'G', clefOctave:0,  hasTab:true},
+  {id:'bouzouki_ir', label:'Bouzouki irlandais (GDAD)',  strings:4, tuningKey:'bouzouki_ir', clef:'G', clefOctave:0,  hasTab:true},
+  {id:'nouzoki',     label:'Nouzoki / Cittern',          strings:4, tuningKey:'nouzoki',     clef:'G', clefOctave:0,  hasTab:true},
+  {id:'oud',         label:'Oud (6 chœurs)',             strings:6, tuningKey:'oud',         clef:'G', clefOctave:0,  hasTab:true},
+  {id:'cello',       label:'Violoncelle (CGDA)',         strings:4, tuningKey:'cello',       clef:'F', clefOctave:0,  hasTab:true},
+  {id:'contrebasse', label:'Contrebasse (EADG)',         strings:4, tuningKey:'contrebasse', clef:'F', clefOctave:-1, hasTab:true},
+  {id:'violin',      label:'Violon (GDAE)',              strings:4, tuningKey:'violin',      clef:'G', clefOctave:0,  hasTab:true},
+  {id:'viola',       label:'Alto (CGDA)',                strings:4, tuningKey:'viola',       clef:'C', clefOctave:0,  hasTab:true},
+  {id:'piano',       label:'Piano',                     strings:0, tuningKey:null,           clef:'G', clefOctave:0,  hasTab:false},
+  {id:'voice',       label:'Voix',                      strings:0, tuningKey:null,           clef:'G', clefOctave:0,  hasTab:false},
+  {id:'custom',      label:'Personnalisé…',             strings:6, tuningKey:'custom',       clef:'G', clefOctave:0,  hasTab:true},
 ];
 
 // ── État courant ──
@@ -799,6 +1142,11 @@ let score = {
 };
 
 let mode='select', dur='quarter';
+// Variables dialogue nouvelle partition / ajout piste — déclarées tôt car utilisées par _openNewScoreDlg
+let nwtQueue=[];
+let nwtVoiceCount=0;
+let _apType='strings';
+let _apVoiceCount=0;
 let isRest=false;  // silence toggle indépendant de la durée
 let curNote={name:'C',octave:4,alter:0};
 let curArts=[], curDyn='';
@@ -1063,8 +1411,10 @@ function resetAllUI(){
   // Boutons reprise : tout remettre à zéro
   syncRepeatButtons(null);
 
-  // Zone active
-  curString=6; curFret=0; activeZone='tab'; tabInput={fretStr:''};
+  // Zone active — corde sûre selon l'instrument actif
+  const safeStrings=score.strings||6;
+  curString=Math.min(safeStrings, safeStrings); // = safeStrings (corde grave)
+  curFret=0; activeZone='tab'; tabInput={fretStr:''};
   syncPitchFromTab();
 }
 function initScore(){
@@ -1337,7 +1687,13 @@ function render(){
 
   // ── Mode multi-pistes : portées superposées ──────────
   if(score.parts && score.parts.length > 1){
-    renderMultiPart(mc);
+    try{
+      renderMultiPart(mc);
+    }catch(e){
+      console.error('[renderMultiPart] ERREUR:', e);
+      mc.innerHTML=`<div style="padding:20px;color:red;font-family:monospace;font-size:12px">
+        Erreur de rendu: ${e.message}<br><pre>${e.stack}</pre></div>`;
+    }
     requestAnimationFrame(adjustZoomToSPP);
     return;
   }
@@ -1421,7 +1777,7 @@ function render(){
   });
   if(rowBuf.length) rowGroups.push({rms:rowBuf, isBreak:false});
   window._rowGroups=rowGroups; // accessible depuis scrollToMeasure
-  console.log('rowGroups:', rowGroups.length, 'avec rehearsal:', rowGroups.filter(rg=>rg.rms[0]?.rehearsal).length);
+
 
   for(let r=0;r<rowGroups.length;r++){
     const rms=rowGroups[r].rms;
@@ -1457,9 +1813,8 @@ function render(){
     const isPageBreak = rowGroups[r-1]?.isPage || (r>0 && window._pageH > 1020);
     if(r>0 && isPageBreak){
       const pg=document.createElement('div');
-      pg.style.cssText='width:100%;text-align:center;font-size:9px;color:#aaa;'+
-        'border-bottom:1px dashed #c8c0aa;padding-bottom:4px;margin:4px 0 8px;letter-spacing:.1em';
-      pg.textContent='— — — — — — — PAGE — — — — — —';
+      pg.className='page-break-line';
+      pg.innerHTML='<span class="pbl-label">⊞ Fin de page</span>';
       mc.appendChild(pg);
       window._pageH=rowH;
     }
@@ -1487,7 +1842,7 @@ function render(){
           const gapY1 = staffTop + STAFF_H;
           const gapY2 = tabTop;
           if(gapY2 > gapY1){
-            const repX = mX + 2;
+            const repX = bx + 2;
             svgLine(repX,   gapY1, repX,   gapY2, '#1a1a2e', 3.5, svg);
             svgLine(repX+5, gapY1, repX+5, gapY2, '#1a1a2e', 1.0, svg);
           }
@@ -1606,6 +1961,27 @@ function drawBeams(svg, m, naX, naW, totD, staffTop, SP, eff_clef, eff_clefOctav
           stroke:'#1a1a2e','stroke-width':BBAR,'stroke-linecap':'butt'},svg);
       }
     });
+
+    // ── Triolet : si groupe de 3 notes exactement dans l'espace d'une noire pointée ──
+    const isTripletGroup = grp.length===3 && (() => {
+      const first=grp[0], last=grp[grp.length-1];
+      const span=last.pos+(DIVS[last.n.duration]||8)-first.pos;
+      // Un triolet de croches = 24 div (noire pointée) ; de doubles = 12 div
+      return span===24||span===12||span===8||span===16;
+    })();
+    if(isTripletGroup){
+      const cx=(x1+x2)/2;
+      const ty=allUp ? Math.min(y1,y2)-10 : Math.max(y1,y2)+14;
+      const bLen=12;
+      // Petites barres aux extrémités
+      const brY1=allUp?ty+4:ty-4;
+      svgEl('line',{x1,y1:brY1,x2:x1,y2:ty,stroke:'#1a1a2e','stroke-width':0.8},svg);
+      svgEl('line',{x1:x2,y1:brY1,x2:x2,y2:ty,stroke:'#1a1a2e','stroke-width':0.8},svg);
+      svgEl('line',{x1,y1:ty,x2:cx-4,y2:ty,stroke:'#1a1a2e','stroke-width':0.8},svg);
+      svgEl('line',{x1:cx+4,y1:ty,x2:x2,y2:ty,stroke:'#1a1a2e','stroke-width':0.8},svg);
+      svgEl('text',{x:cx,y:ty+(allUp?-1:4),'font-size':8,'fill':'#1a1a2e',
+        'text-anchor':'middle','font-family':"'DM Sans',sans-serif",'font-weight':'600'},svg).textContent='3';
+    }
   });
 }
 
@@ -1640,6 +2016,8 @@ function renderMeas(svg,m,mX,mW,staffTop,tabTop,SP,TSP,ns,showS,showT,isVeryFirs
 
   if(showS) drawStaff(svg,m,mX,mW,staffTop,SP,naX,naW,PAD,isFirstInRow,isVeryFirst,ctx,showClefChange,showTimeChange,showKeyChange);
   if(showT) drawTabLines(svg,m,mX,mW,tabTop,TSP,ns,naX,naW,isFirstInRow,isVeryFirst);
+  // Rythme au-dessus de la TAB si portée masquée
+  if(showT && !showS) drawRhythmAboveTab(svg,m,naX,naW,tabTop,TSP,totD);
 
   // Curseur de position : ligne + note fantôme
   if(cursorPos.mi===m.num-1){
@@ -1880,15 +2258,16 @@ function renderMeas(svg,m,mX,mW,staffTop,tabTop,SP,TSP,ns,showS,showT,isVeryFirs
   // Tempo
   // Marqueur de répétition (rehearsal) — titre de morceau dans un cadre
   if(m.rehearsal){
-    const rx=mX+4, ry=staffTop-22;
-    const rw=Math.min(m.rehearsal.length*6+10, mW-8);
-    svgEl('rect',{x:rx,y:ry,width:rw,height:14,rx:2,
-      fill:'#f5f0e8',stroke:'#1a1a2e','stroke-width':0.8},svg);
-    svgEl('text',{x:rx+4,y:ry+10,'font-size':8.5,fill:'#1a1a2e',
-      'font-family':"'DM Sans',sans-serif",'font-weight':'600',
+    const rx=mX+2, ry=staffTop-30;
+    const rw=Math.min(m.rehearsal.length*7.5+12, mW-4);
+    // Fond coloré et cadre plus visible
+    svgEl('rect',{x:rx,y:ry,width:rw,height:18,rx:3,
+      fill:'#f5f0e8',stroke:'#1a1a2e','stroke-width':1.2},svg);
+    svgEl('text',{x:rx+5,y:ry+12.5,'font-size':11,fill:'#1a1a2e',
+      'font-family':"'Crimson Pro',serif",'font-weight':'600','font-style':'italic',
       'text-anchor':'start'},svg).textContent=m.rehearsal;
     // Barre double avant ce morceau
-    svgLine(mX+(mX===0?6:2),staffTop,mX+(mX===0?6:2),staffTop+SP*4,'#1a1a2e',1.2,svg);
+    svgLine(mX+(mX===0?6:2),staffTop,mX+(mX===0?6:2),staffTop+SP*4,'#1a1a2e',1.5,svg);
     svgLine(mX+(mX===0?8:4),staffTop,mX+(mX===0?8:4),staffTop+SP*4,'#1a1a2e',0.6,svg);
   }
   if(m.tempo){
@@ -2378,6 +2757,19 @@ function drawNoteTab(svg,n,nX,tabTop,TSP,ns,isSel,mi,ni,isChord=false,partIdx=nu
   te.textContent=fstr;
   te.addEventListener('click',e=>{e.stopPropagation();if(partIdx!==null&&partIdx!==score.activePart){score.activePart=partIdx;score.measures=score.parts[partIdx]?.measures||[];}selectNote(mi,ni,false,'tab');});
 
+  // ── Rythme au-dessus de la TAB (seulement si portée masquée) ──
+  // dessiné par drawRhythmAboveTab, appelé une fois par position
+
+  // ── Paroles sous la TAB ──
+  if(n.lyric && !n.isRest){
+    const lyY = tabTop + (ns-1)*TSP + 14;
+    const lFont = score.lyricFont||'Crimson Pro';
+    const lSize = score.lyricSize||10;
+    svgEl('text',{x:nX+3,y:lyY,'font-size':lSize,'fill':'#333',
+      'text-anchor':'start','font-style':'italic',
+      'font-family':`'${lFont}',serif`},svg).textContent=n.lyric;
+  }
+
   // bend arc
   if((n.ornaments||[]).includes('bend')){
     svgEl('path',{
@@ -2385,6 +2777,103 @@ function drawNoteTab(svg,n,nX,tabTop,TSP,ns,isSel,mi,ni,isChord=false,partIdx=nu
       stroke:'#c8541a','stroke-width':1.3,fill:'none'},svg);
     const ua=svgEl('text',{x:nX+18,y:ly-7,'font-size':8,fill:'#c8541a'},svg);
     ua.textContent='↑';
+  }
+}
+
+// ── Rythme au-dessus de la TAB (quand portée masquée) ──
+// Dessine hampe + tête simplifiée au-dessus de la ligne TAB pour chaque position
+function drawRhythmAboveTab(svg, m, naX, naW, tabTop, TSP, totD){
+  const rhythmTop = tabTop - 22; // Y de la tête de note rythmique
+
+  // Grouper les notes par position (accord = même position, prendre la plus courte)
+  const byPos={};
+  m.notes.filter(n=>!n.isRest).forEach(n=>{
+    if(!byPos[n.position]||DIVS[n.duration]<DIVS[byPos[n.position].duration])
+      byPos[n.position]=n;
+  });
+  // Silences aussi
+  const restByPos={};
+  m.notes.filter(n=>n.isRest).forEach(n=>{
+    if(!byPos[n.position]&&(!restByPos[n.position]||DIVS[n.duration]<DIVS[restByPos[n.position].duration]))
+      restByPos[n.position]=n;
+  });
+
+  const slotX=pos=>naX+Math.max(0,Math.min((pos/totD)*naW,naW-8));
+  const STEM_H=14;
+
+  // Dessiner les silences rythmiques
+  Object.values(restByPos).forEach(n=>{
+    const nx=slotX(n.position)+3;
+    // Symbole simplifié selon durée
+    const sym={whole:'𝄻',half:'𝄼',quarter:'𝄽',eighth:'𝄾','16th':'𝄿'}[n.duration]||'𝄽';
+    svgEl('text',{x:nx,y:rhythmTop+6,'font-size':7,'fill':'#888',
+      'text-anchor':'middle','font-family':"'Bravura','FreeSerif',serif"},svg).textContent=sym;
+  });
+
+  // Dessiner les notes rythmiques
+  const notePositions=Object.entries(byPos).sort((a,b)=>a[0]-b[0]);
+  notePositions.forEach(([posStr,n])=>{
+    const nx=slotX(parseInt(posStr))+3;
+    const dur=n.duration;
+    const isWhole=dur==='whole';
+    const isHalf=dur==='half';
+    const isFilled=!isWhole&&!isHalf;
+    const isDotted=n.dotted;
+
+    // Tête de note
+    const headY=rhythmTop;
+    const headRX=4, headRY=3;
+    svgEl('ellipse',{cx:nx,cy:headY,rx:headRX,ry:headRY,
+      fill:isFilled?'#1a1a2e':'none',
+      stroke:'#1a1a2e','stroke-width':0.9},svg);
+
+    // Hampe (sauf ronde)
+    if(!isWhole){
+      svgEl('line',{x1:nx+headRX-0.5,y1:headY,
+        x2:nx+headRX-0.5,y2:headY-STEM_H,
+        stroke:'#1a1a2e','stroke-width':1},svg);
+    }
+
+    // Crochets sur la hampe (croches+)
+    const flags={'eighth':1,'16th':2,'32nd':3,'64th':4}[dur]||0;
+    for(let fi=0;fi<flags;fi++){
+      const fy=headY-STEM_H+fi*4;
+      svgEl('path',{d:`M${nx+headRX-0.5},${fy} Q${nx+headRX+8},${fy+3} ${nx+headRX+5},${fy+8}`,
+        fill:'none',stroke:'#1a1a2e','stroke-width':1},svg);
+    }
+
+    // Point (valeur pointée)
+    if(isDotted){
+      svgEl('circle',{cx:nx+headRX+3,cy:headY-1,r:1.2,fill:'#1a1a2e'},svg);
+    }
+  });
+
+  // Barres de liaison entre croches adjacentes
+  const beamCandidates=notePositions
+    .map(([ps,n])=>({pos:parseInt(ps),n,nx:slotX(parseInt(ps))+3}))
+    .filter(b=>['eighth','16th','32nd','64th'].includes(b.n.duration));
+
+  if(beamCandidates.length>=2){
+    let grp=[];
+    beamCandidates.forEach((b,i)=>{
+      if(!grp.length){grp.push(b);return;}
+      const prev=grp[grp.length-1];
+      const prevEnd=prev.pos+(DIVS[prev.n.duration]||8);
+      if(b.pos<=prevEnd+1) grp.push(b);
+      else{
+        if(grp.length>=2){
+          svgEl('line',{x1:grp[0].nx+3.5,y1:rhythmTop-STEM_H,
+            x2:grp[grp.length-1].nx+3.5,y2:rhythmTop-STEM_H,
+            stroke:'#1a1a2e','stroke-width':2.5,'stroke-linecap':'butt'},svg);
+        }
+        grp=[b];
+      }
+    });
+    if(grp.length>=2){
+      svgEl('line',{x1:grp[0].nx+3.5,y1:rhythmTop-STEM_H,
+        x2:grp[grp.length-1].nx+3.5,y2:rhythmTop-STEM_H,
+        stroke:'#1a1a2e','stroke-width':2.5,'stroke-linecap':'butt'},svg);
+    }
   }
 }
 
@@ -3005,9 +3494,13 @@ function deleteMeasure(){
 
 function applyClef(){
   const mi = selEl!==null ? selEl.mi : cursorPos.mi;
-  if(mi<0||mi>=score.measures.length) return;
-  const m=score.measures[mi];
-  const prevCtx = mi>0 ? getMeasureCtx(mi-1) : null;
+  // Toujours utiliser les mesures de la piste active courante
+  const activeMeasures = (score.parts&&score.parts.length>0)
+    ? (score.parts[score.activePart]?.measures||score.measures)
+    : score.measures;
+  if(mi<0||mi>=activeMeasures.length) return;
+  const m=activeMeasures[mi];
+  const prevCtx = mi>0 ? getMeasureCtx(mi-1, activeMeasures) : null;
   const clefVal=document.getElementById('clef-sel').value;
   if(!clefVal) return;
   saveHistory();
@@ -3018,7 +3511,7 @@ function applyClef(){
   if(mi===0 || !prevCtx || prevCtx.clef!==newClef || prevCtx.clefOctave!==newOct || prevCtx.clefLine!==newLine){
     m.clef=newClef; m.clefLine=newLine; m.clefOctave=newOct;
   }
-  propagateMetadata(); render();
+  render();
 }
 
 function applyTime(){
@@ -3082,9 +3575,12 @@ function applyMeasure(){
 // Sync le panneau Mesure quand on sélectionne une mesure
 function syncMeasurePanel(m){
   if(!m) return;
-  const mi = score.measures ? score.measures.indexOf(m) : -1;
-  // Utiliser le contexte effectif (avec héritage) pour afficher les vraies valeurs
-  const ctx = mi>=0 ? getMeasureCtx(mi) : {clef:'G',clefOctave:0,clefLine:2,timeNum:4,timeDen:4,key:0};
+  // Chercher l'index dans les mesures de la piste active (pas score.measures global)
+  const activeMeasures = (score.parts&&score.parts.length>0)
+    ? (score.parts[score.activePart]?.measures||score.measures)
+    : score.measures;
+  const mi = activeMeasures.indexOf(m);
+  const ctx = mi>=0 ? getMeasureCtx(mi, activeMeasures) : {clef:'G',clefOctave:0,clefLine:2,timeNum:4,timeDen:4,key:0};
   
   // Clef : reconstruire depuis le contexte effectif
   const line = ctx.clefLine||2;
@@ -3112,6 +3608,7 @@ function syncMeasurePanel(m){
   syncRepeatButtons(m);
   syncVoltaButtons(m);
   syncBeamGroupingUI(m);
+  syncBreakButtons(m);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -3437,6 +3934,8 @@ function switchTab(el,pid){
   document.querySelectorAll('.spanel').forEach(p=>p.classList.remove('on'));
   el.classList.add('on');
   document.getElementById(pid).classList.add('on');
+  // Mettre à jour la liste des pistes quand on ouvre l'onglet Partition
+  if(pid==='ppartition') buildPartsMgr();
 }
 function updateHeader(){
   const g=id=>document.getElementById(id)?.value||'';
@@ -3466,13 +3965,19 @@ function syncPartitionPanel(){
   // Affichage partition
   document.getElementById('disp-title').textContent=score.title||'';
   document.getElementById('disp-composer').textContent=score.composer||'';
-  // Instrument
-  const instr=document.getElementById('instr-sel');
-  if(instr) instr.value=score.instr||'guitar';
+  // Instrument actif (depuis la piste active si multi-piste)
+  if(score.parts&&score.parts.length>0){
+    const ap=score.parts[score.activePart]||score.parts[0];
+    score.instr=ap.instrId||score.instr;
+    // Mettre à jour score.strings depuis la piste active ou son autoTab
+    const linked=score.parts.find(t=>t.autoTab&&t.parentId===ap.id);
+    const ns=(ap.strings||0)||(linked?.strings||0);
+    if(ns>0) score.strings=ns;
+  }
   const ss=document.getElementById('staff-scale-r');
-  if(ss){ ss.value=score.staffScale||1.0; document.getElementById('staff-scale-lbl').textContent=Math.round((score.staffScale||1)*100)+'%'; }
+  if(ss){ ss.value=score.staffScale||1.0; const sl=document.getElementById('staff-scale-lbl'); if(sl) sl.textContent=Math.round((score.staffScale||1)*100)+'%'; }
   const lf=document.getElementById('lyric-font'); if(lf) lf.value=score.lyricFont||'Crimson Pro';
-  const ls=document.getElementById('lyric-size'); if(ls){ ls.value=score.lyricSize||10; document.getElementById('lyric-size-lbl').textContent=(score.lyricSize||10)+'px'; }
+  const ls=document.getElementById('lyric-size'); if(ls){ ls.value=score.lyricSize||10; const ll=document.getElementById('lyric-size-lbl'); if(ll) ll.textContent=(score.lyricSize||10)+'px'; }
 }
 function changeInstr(){
   const t=document.getElementById('instr-sel').value;
@@ -3740,30 +4245,22 @@ function newScore(){
   if(isDirty && undoStack.length>0){
     if(!confirm('La partition a été modifiée. Continuer sans enregistrer ?')) return;
   }
-  openDlg('dlg-new');
+  _openNewScoreDlg();
 }
-function confirmNew(){
-  const t=document.getElementById('nw-title').value;
-  const c=document.getElementById('nw-composer').value;
-  const bpm=parseInt(document.getElementById('nw-tempo').value)||120;
-  const[tn,td]=document.getElementById('nw-time').value.split('/').map(Number);
-  const mc=parseInt(document.getElementById('nw-meas').value)||4;
-  score.title=t; score.composer=c; score.tempo=bpm; score.timeNum=tn; score.timeDen=td;
-  // Remise à zéro complète — pistes, mesures, sélection
-  score.parts=[]; score.activePart=0; score.mergeTab=false;
-  score.timeNum=tn; score.timeDen=td; score.key=0; score.tempo=bpm;
-  score.measures=[];
-  for(let i=0;i<mc;i++) score.measures.push(mkM(i+1));
-  const m0new=score.measures[0];
-  m0new.clef='G'; m0new.clefOctave=0; m0new.clefLine=2;
-  m0new.timeNum=tn; m0new.timeDen=td; m0new.key=0; m0new.tempo=bpm;
-  selEl=null; selZone='staff'; cursorPos={mi:0,pos:0};
-  undoStack=[]; redoStack=[];
-  isDirty=false;
-  resetAllUI();
-  syncPartitionPanel(); updateHeader(); updatePartSelector();
-  buildRehearsalList();
-  closeDlg('dlg-new'); render();
+
+function _openNewScoreDlg(){
+  nwtQueue=[];
+  nwtRenderQueue();
+  const fields={
+    'nw-title':'Nouvelle partition','nw-composer':'',
+    'nw-tempo':'80','nw-time':'4/4','nw-meas':'8'
+  };
+  Object.entries(fields).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
+  // Scoper au dialogue nouvelle partition
+  const dlg=document.getElementById('dlg-new');
+  dlg.querySelectorAll('.track-type-pane').forEach(p=>p.classList.remove('on'));
+  dlg.querySelectorAll('.track-type-btn').forEach(b=>b.classList.remove('on'));
+  openDlg('dlg-new');
 }
 function openFile(){
   if(isDirty && undoStack.length>0){
@@ -3791,6 +4288,7 @@ function openFile(){
 }
 function loadFile(e){
   const f=e.target.files[0]; if(!f) return;
+  const isMxl=f.name.toLowerCase().endsWith('.mxl');
   const r=new FileReader();
   r.onload=ev=>{
     const doLoad=xml=>{
@@ -3801,39 +4299,43 @@ function loadFile(e){
         resetAllUI();
         parseMXML(xml);
         syncPartitionPanel();
-        isDirty=false; render(); buildRehearsalList();
-      }catch(err){alert('Erreur: '+err.message);}
+        isDirty=false;
+        updatePartSelector(); buildPartsMgr(); buildRehearsalList();
+        wlcDismiss();
+        render();
+      }catch(err){
+        console.error('Erreur chargement:', err);
+        alert('Erreur: '+err.message+'\n'+err.stack?.split('\n')[1]);
+      }
     };
-    if(f.name.toLowerCase().endsWith('.mxl')){
-      // MXL = zip contenant le MusicXML — utiliser JSZip si disponible
+    if(isMxl){
       if(typeof JSZip==='undefined'){
         alert('Lecture MXL non disponible. Convertissez en .musicxml depuis MuseScore ou Finale.');
         return;
       }
       JSZip.loadAsync(ev.target.result).then(zip=>{
-        // Le fichier principal est indiqué dans META-INF/container.xml ou rootfile
         const container=zip.file('META-INF/container.xml');
-        if(container){
-          container.async('text').then(txt=>{
-            const parser=new DOMParser();
-            const cdoc=parser.parseFromString(txt,'text/xml');
-            const rootpath=cdoc.querySelector('rootfile')?.getAttribute('full-path')||'score.xml';
-            const mxmlFile=zip.file(rootpath)||Object.values(zip.files).find(f=>f.name.match(/\.(xml|musicxml)$/i));
-            if(mxmlFile) mxmlFile.async('text').then(doLoad);
-            else alert('Fichier MusicXML non trouvé dans le MXL');
-          });
-        } else {
-          // Chercher directement un .xml ou .musicxml
-          const mxmlFile=Object.values(zip.files).find(f=>f.name.match(/\.(xml|musicxml)$/i));
+        const tryLoad=path=>{
+          const mxmlFile=zip.file(path)||Object.values(zip.files).find(f2=>f2.name.match(/\.(xml|musicxml)$/i));
           if(mxmlFile) mxmlFile.async('text').then(doLoad);
           else alert('Fichier MusicXML non trouvé dans le MXL');
+        };
+        if(container){
+          container.async('text').then(txt=>{
+            const cdoc=new DOMParser().parseFromString(txt,'text/xml');
+            const rootpath=cdoc.querySelector('rootfile')?.getAttribute('full-path')||'score.xml';
+            tryLoad(rootpath);
+          }).catch(()=>tryLoad('score.xml'));
+        } else {
+          tryLoad('score.xml');
         }
       }).catch(err=>alert('Erreur lecture MXL: '+err.message));
       return;
     }
     doLoad(ev.target.result);
   };
-  r.readAsText(f);
+  if(isMxl) r.readAsArrayBuffer(f);
+  else r.readAsText(f);
 }
 function parseMXML(xml){
   const doc=new DOMParser().parseFromString(xml,'application/xml');
@@ -4135,8 +4637,8 @@ function parseMXML(xml){
   score.measures=score.parts[0]?.measures||[];
   selEl=null; cursorPos={mi:0,pos:0};
 
-  // ── Générer les tablatures automatiques (pistes sans tab native) ──
-  generateAutoTabs();
+  // À l'ouverture : on affiche les pistes TELLES QUELLES, sans générer de TAB automatique.
+  // L'utilisateur peut ajouter une TAB liée depuis l'onglet Partition si souhaité.
 
   // ── Mettre à jour l'UI ───────────────────────────────
   document.getElementById('disp-title').textContent   =score.title;
@@ -4341,19 +4843,8 @@ function updatePartSelector(){
       return `<option value="${i}"${i===score.activePart?' selected':''}>${p.name||p.id}</option>`;
     }).join('');
   }
-  // Bouton propriétés instrument — toujours visible
-  let instrBtn=document.getElementById('btn-instr-props');
-  if(!instrBtn){
-    instrBtn=document.createElement('button');
-    instrBtn.id='btn-instr-props';
-    instrBtn.className='btn btn-s';
-    instrBtn.style.cssText='margin-left:4px;font-size:10px';
-    instrBtn.textContent='🎸 Instrument';
-    instrBtn.onclick=()=>openInstrDialog();
-    grp.parentNode.insertBefore(instrBtn, grp.nextSibling);
-  }
-  instrBtn.style.display = '';
   updatePartsVisibility();
+  if(typeof buildPartsMgr==='function') buildPartsMgr();
 }
 
 function updatePartsVisibility(){
@@ -4466,8 +4957,22 @@ function switchActivePart(idx){
   score.activePart=idx;
   score.measures=score.parts[idx]?.measures||[];
   selEl=null; cursorPos={mi:0,pos:0};
-  // Passer à l'onglet Partition pour voir la liste des pistes
-  updatePartSelector(); // met à jour toolbar + sidebar
+  // Synchroniser score.strings et l'accordage depuis la piste active ou son autoTab
+  const p=score.parts[idx];
+  if(p){
+    // Chercher les cordes : sur la piste elle-même ou son autoTab lié
+    const linked=score.parts.find(t=>t.autoTab&&t.parentId===p.id);
+    const ns=(p.strings||0)||(linked?.strings||0);
+    if(ns>0){
+      score.strings=ns;
+      if(p.tuning&&p.tuning.length) score.tuning=p.tuning.map(s=>noteNameFromSemi(s));
+      else if(linked?.tuning?.length) score.tuning=linked.tuning.map(s=>noteNameFromSemi(s));
+      curString=Math.min(curString,ns);
+    }
+    score.instr=p.instrId||score.instr;
+  }
+  buildStringLabels();
+  updatePartSelector();
   render(); updateNavHint();
 }
 
@@ -4477,7 +4982,8 @@ function switchActivePart(idx){
 function renderMultiPart(mc){
   const PAGE_W=718;
   const MPR=score.mpr||2;
-  const MW=PAGE_W/MPR;
+  const NAME_W=46; // marge gauche pour les noms d'instruments
+  const MW=(PAGE_W-NAME_W)/MPR;
   const SP=Math.round(7*(score.staffScale||1.0));
   const STAFF_H=SP*4;
   const TSP=Math.round(8*(score.staffScale||1.0));
@@ -4490,7 +4996,7 @@ function renderMultiPart(mc){
   const nParts=parts.length;
 
   // Visibilité de chaque piste
-  const showS_=i=>parts[i].showStaff!==false;
+  const showS_=i=>parts[i].showStaff!==false && !parts[i].autoTab;
   const showT_=i=>parts[i].hasTab && parts[i].showTab!==false && !score.mergeTab;
 
   // Pistes avec tab (pour le mode fusion)
@@ -4548,16 +5054,19 @@ function renderMultiPart(mc){
   // Pour les zones de clic et le buildPartYs initial, on utilise le gap max
   const partMaxGaps=parts.map((_,i)=>computePartMaxGap(i));
 
+  // Helper : nombre de cordes d'une piste (jamais 0)
+  const partStrings_=(i)=>Math.max(1, parts[i].strings || score.strings || 6);
+
   function partHeight(i, gap){
     const g=gap!==undefined?gap:partMaxGaps[i];
     const sH=showS_(i)?STAFF_H:0;
-    const tH=showT_(i)?(score.strings-1)*TSP:0;
+    const tH=showT_(i)?(partStrings_(i)-1)*TSP:0;
     return sH+(showS_(i)&&showT_(i)?g:0)+tH;
   }
 
   // Bloc tab fusionné en bas du système
   const mergedTabH=score.mergeTab&&tabParts.length>0
-    ? tabParts.length*(score.strings-1)*TSP + (tabParts.length-1)*14
+    ? tabParts.reduce((sum,p,ti)=>sum+Math.max(1,(p.strings||score.strings||6)-1)*TSP+(ti>0?14:0),0)
     : 0;
 
   // Calcule l'espace de paroles nécessaire sous la portée d'une piste (sans TAB)
@@ -4654,41 +5163,59 @@ function renderMultiPart(mc){
       style:'display:block;margin-bottom:6px;overflow:visible'
     });
 
-    // ── Accolade système ──
-    // S'étend de la première portée visible jusqu'à la dernière tab visible
-    const visibleStaffParts=parts.filter((_,i)=>showS_(i));
-    if(visibleStaffParts.length>=1){
+    // ── Accolade / barre système ──
+    {
       const firstI=parts.findIndex((_,i)=>showS_(i)||showT_(i));
-      // Dernière piste avec portée OU tablature visible
       let lastVisibleBottom = 0;
       parts.forEach((p,i)=>{
         const {sTop,tTop}=partYs[i];
         if(showS_(i)) lastVisibleBottom = Math.max(lastVisibleBottom, sTop+STAFF_H);
-        if(showT_(i)) lastVisibleBottom = Math.max(lastVisibleBottom, tTop+(score.strings-1)*TSP);
+        if(showT_(i)) lastVisibleBottom = Math.max(lastVisibleBottom, tTop+(partStrings_(i)-1)*TSP);
       });
       if(firstI>=0 && lastVisibleBottom>0){
         const y1=partYs[firstI].sTop;
         const y2=lastVisibleBottom;
-        // Barre fine gauche du système uniquement
-        svgLine(1,y1,1,y2,'#1a1a2e',1.0,svg);
+        svgLine(NAME_W,y1,NAME_W,y2,'#1a1a2e',1.2,svg);
       }
     }
 
-    // ── Noms de piste (1ère rangée) ──
-    if(r===0){
-      parts.forEach((p,pi)=>{
-        if(!showS_(pi)) return;
-        const {sTop}=partYs[pi];
-        svgEl('text',{x:14,y:sTop+STAFF_H/2+4,'font-size':9,'fill':'#888',
-          'text-anchor':'start','font-family':"'DM Sans',sans-serif",'font-weight':'500'},svg).textContent=p.abbr||p.name;
-      });
-    }
+    // ── Noms de piste ──
+    parts.forEach((p,pi)=>{
+      if(!showS_(pi)&&!showT_(pi)) return;
+      const {sTop,tTop}=partYs[pi];
+      const isActive = pi===activePIdx;
+      const yMid = showS_(pi) ? sTop+STAFF_H/2 : tTop+(partStrings_(pi)-1)*TSP/2;
+      // Pistes principales seulement (pas autoTab)
+      const displayP = parts.find(mp=>!mp.autoTab&&(mp.id===p.id||(p.autoTab&&mp.id===p.parentId)))||p;
+      if(r===0){
+        const label = displayP.name||displayP.id||'';
+        const abbr = displayP.abbr||'';
+        // Nom complet à gauche, centré verticalement
+        svgEl('text',{
+          x:NAME_W-3, y:yMid+4,
+          'font-size':label.length>10?7:9,
+          'fill':isActive?'#c8541a':'#444',
+          'text-anchor':'end',
+          'font-family':"'DM Sans',sans-serif",
+          'font-weight':'600'
+        },svg).textContent=label.length>14?label.substring(0,13)+'…':label;
+      } else {
+        // Abrégé
+        const abbr=(p.abbr||p.name||'').substring(0,6);
+        svgEl('text',{
+          x:NAME_W-3, y:yMid+4,
+          'font-size':8, 'fill':isActive?'#c8541a':'#999',
+          'text-anchor':'end',
+          'font-family':"'DM Sans',sans-serif"
+        },svg).textContent=abbr;
+      }
+    });
 
     // ── Mesures × pistes ──
     for(let mi_=0;mi_<rCount;mi_++){
       const globalMi=rStart+mi_;
       if(globalMi>=numMeasures) break;
-      const mX=mi_*MW;
+      const mX=NAME_W+mi_*MW;
 
       parts.forEach((p,pi)=>{
         const {sTop,tTop}=partYs[pi];
@@ -4699,16 +5226,15 @@ function renderMultiPart(mc){
         // Pour la piste active, calculer où s'étend le curseur (portée + tab associée)
         let cursorCy2 = null;
         if(pi===activePIdx){
-          // Chercher la tablature auto associée à cette piste
           const autoTabPi = parts.findIndex(t=>t.autoTab && t.parentId===p.id);
           if(autoTabPi>=0 && showT_(autoTabPi)){
             const {tTop:autoTabTop} = partYs[autoTabPi];
-            cursorCy2 = autoTabTop + (score.strings-1)*TSP + 4;
+            cursorCy2 = autoTabTop + (partStrings_(autoTabPi)-1)*TSP + 4;
           }
         }
 
         renderMeasMulti(svg,m,globalMi,mX,MW,sTop,tTop,
-          SP,TSP,score.strings,showS_(pi),showT_(pi),
+          SP,TSP,partStrings_(pi),showS_(pi),showT_(pi),
           mi_===0&&r===0,mi_===0,
           pi===activePIdx,pi, cursorCy2);
       });
@@ -4718,16 +5244,15 @@ function renderMultiPart(mc){
         tabParts.forEach((p,ti)=>{
           const m=p.measures[globalMi];
           if(!m) return;
-          const tY=mergedTabY+ti*((score.strings-1)*TSP+14);
-          // Label piste sur la 1ère mesure de la rangée
+          const ns_ti=Math.max(1,(p.strings||score.strings||6));
+          const tY=mergedTabY+ti*((ns_ti-1)*TSP+14);
           if(mi_===0&&r===0){
-            svgEl('text',{x:14,y:tY+(score.strings-1)*TSP/2+4,'font-size':9,'fill':'#777',
+            svgEl('text',{x:14,y:tY+(ns_ti-1)*TSP/2+4,'font-size':9,'fill':'#777',
               'text-anchor':'start','font-family':"'DM Sans',sans-serif",'font-weight':'500'},svg).textContent=p.abbr||p.name;
           }
           const naX=mX+(mi_===0?52:10);
           const naW=MW-(mi_===0?52:10)-6;
-          drawTabLines(svg,m,mX,MW,tY,TSP,score.strings,naX,naW,mi_===0);
-          // Notes tab — espacement proportionnel
+          drawTabLines(svg,m,mX,MW,tY,TSP,ns_ti,naX,naW,mi_===0);
           const totD=measTotD(m);
           const byPos={};
           m.notes.forEach((n,ni)=>{const k=n.position;if(!byPos[k])byPos[k]=[];byPos[k].push({n,ni});});
@@ -4736,7 +5261,7 @@ function renderMultiPart(mc){
             const nx=naX+Math.max(0,Math.min((parseInt(posKey)/totD)*naW,naW-8));
             group.forEach(({n,ni})=>{
               const isSel=pi===activePIdx&&selEl?.mi===globalMi&&selEl?.ni===ni;
-              drawNoteTab(svg,n,nx,tY,TSP,score.strings,isSel,globalMi,ni,group.length>1);
+              drawNoteTab(svg,n,nx,tY,TSP,ns_ti,isSel,globalMi,ni,group.length>1);
             });
           });
         });
@@ -4744,16 +5269,17 @@ function renderMultiPart(mc){
     }
 
     // ── Barres de fin ──
-    const endX=Math.min(MPR,numMeasures-r*MPR)*MW;
+    const endX=NAME_W+Math.min(MPR,numMeasures-rStart)*MW;
     parts.forEach((p,pi)=>{
       const {sTop,tTop}=partYs[pi];
       if(showS_(pi)) svgLine(endX,sTop,endX,sTop+STAFF_H,'#1a1a2e',1.5,svg);
-      if(showT_(pi)) svgLine(endX,tTop,endX,tTop+(score.strings-1)*TSP,'#1a1a2e',1.5,svg);
+      if(showT_(pi)) svgLine(endX,tTop,endX,tTop+(partStrings_(pi)-1)*TSP,'#1a1a2e',1.5,svg);
     });
     if(score.mergeTab&&tabParts.length>0){
-      tabParts.forEach((_,ti)=>{
-        const tY=mergedTabY+ti*((score.strings-1)*TSP+14);
-        svgLine(endX,tY,endX,tY+(score.strings-1)*TSP,'#1a1a2e',1.5,svg);
+      tabParts.forEach((p,ti)=>{
+        const ns_ti=Math.max(1,(p.strings||score.strings||6));
+        const tY=mergedTabY+ti*((ns_ti-1)*TSP+14);
+        svgLine(endX,tY,endX,tY+(ns_ti-1)*TSP,'#1a1a2e',1.5,svg);
       });
     }
 
@@ -5173,23 +5699,25 @@ function buildRehearsalList(){
     .map((m,i)=>({mi:i, title:m.rehearsal, num:m.num}))
     .filter(r=>r.title);
 
-  console.log('Rehearsals found:', rehearsals.length, rehearsals.slice(0,3));
-  if(rehearsals.length===0){ sec.style.display='none'; return; }
-
-  sec.style.display='block';
-  list.innerHTML='';
-  rehearsals.forEach(r=>{
-    const btn=document.createElement('button');
-    btn.style.cssText='display:block;width:100%;text-align:left;padding:3px 6px;'+
-      'font-size:10px;background:none;border:none;border-bottom:1px solid #e8e4dc;'+
-      "cursor:pointer;color:#1a1a2e;font-family:'DM Sans',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis";
-    btn.title=r.title;
-    btn.textContent='M'+r.num+' — '+r.title;
-    btn.onmouseenter=()=>btn.style.background='#fff0e8';
-    btn.onmouseleave=()=>btn.style.background='none';
-    btn.onclick=()=>scrollToMeasure(r.mi);
-    list.appendChild(btn);
-  });
+  if(rehearsals.length===0){ sec.style.display='none'; }
+  else {
+    sec.style.display='block';
+    list.innerHTML='';
+    rehearsals.forEach(r=>{
+      const btn=document.createElement('button');
+      btn.style.cssText='display:block;width:100%;text-align:left;padding:3px 6px;'+
+        'font-size:10px;background:none;border:none;border-bottom:1px solid #e8e4dc;'+
+        "cursor:pointer;color:#1a1a2e;font-family:'DM Sans',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis";
+      btn.title=r.title;
+      btn.textContent='M'+r.num+' — '+r.title;
+      btn.onmouseenter=()=>btn.style.background='#fff0e8';
+      btn.onmouseleave=()=>btn.style.background='none';
+      btn.onclick=()=>scrollToMeasure(r.mi);
+      list.appendChild(btn);
+    });
+  }
+  // Mettre à jour aussi la section de réordonnancement
+  if(typeof buildRehearsalOrder==='function') buildRehearsalOrder();
 }
 
 function scrollToMeasure(mi){
@@ -5256,7 +5784,8 @@ function saveFile(){
   a.download=(score.title||'partition')+'.musicxml';a.click();
 }
 function genMXML(){
-  const ex=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const AMP='\x26amp;', LT='\x26lt;', GT='\x26gt;';
+  const ex=s=>(s||'').replace(/\x26/g,AMP).replace(/\x3C/g,LT).replace(/\x3E/g,GT);
 
   // Déterminer les pistes à exporter
   const parts = (score.parts&&score.parts.length>0)
@@ -5346,10 +5875,13 @@ ${staffDet}
 }
 function showXML(){
   const xml=genMXML();
+  const AMP='\x26amp;', LT='\x26lt;', GT='\x26gt;';
+  const reLT=new RegExp(LT+'([/!?]?[\\w\\-:]+)','g');
+  const reAttr=/ ([\w\-:]+)="([^"]*)"/g;
   document.getElementById('xml-out').innerHTML=xml
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/&lt;([\/!?]?[\w\-:]+)/g,(_,t)=>`&lt;<span class="xt">${t}</span>`)
-    .replace(/ ([\w\-:]+)="([^"]*)"/g,(_,a,v)=>` <span class="xa">${a}</span>="<span class="xv">${v}</span>"`);
+    .replace(/\x26/g,AMP).replace(/\x3C/g,LT).replace(/\x3E/g,GT)
+    .replace(reLT,(_,t)=>LT+'<span class="xt">'+t+'</span>')
+    .replace(reAttr,(_,a,v)=>' <span class="xa">'+a+'</span>="<span class="xv">'+v+'</span>"');
   openDlg('dlg-xml');
 }
 function openDlg(id){document.getElementById(id).classList.add('open');}
@@ -5473,7 +6005,1115 @@ function applyInstrDialog(){
   updatePartSelector();
   render();
 }
-document.querySelectorAll('.dlg-ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+
+// ═══════════════════════════════════════════════════════
+// ÉCRAN D'ACCUEIL
+// ═══════════════════════════════════════════════════════
+function wlcDismiss(){ document.getElementById('welcome-ov').classList.add('gone'); }
+
+function wlcNew(){
+  wlcDismiss();
+  _openNewScoreDlg();
+}
+
+function wlcOpen(){
+  wlcDismiss();
+  openFile();
+}
+
+function wlcBlank(){
+  wlcDismiss();
+  // Crée directement une partition vierge guitare standard
+  score.title='Nouvelle partition'; score.composer=''; score.tempo=80;
+  score.timeNum=4; score.timeDen=4; score.key=0;
+  score.parts=[]; score.activePart=0; score.mergeTab=false;
+  score.measures=[];
+  for(let i=0;i<8;i++) score.measures.push(mkM(i+1));
+  const m0=score.measures[0];
+  m0.clef='G'; m0.clefOctave=0; m0.clefLine=2;
+  m0.timeNum=4; m0.timeDen=4; m0.key=0; m0.tempo=80;
+  selEl=null; selZone='staff'; cursorPos={mi:0,pos:0};
+  undoStack=[]; redoStack=[]; isDirty=false;
+  resetAllUI(); syncPartitionPanel(); updateHeader();
+  updatePartSelector(); buildRehearsalList(); buildPartsMgr();
+  render();
+}
+
+function wlcToggleRecent(){
+  const z=document.getElementById('wlc-recent-zone');
+  z.style.display = z.style.display==='none' ? '' : 'none';
+}
+
+function wlcLoadRecents(){
+  try{
+    const raw=localStorage.getItem('mxml_recents');
+    if(!raw) return;
+    const list=JSON.parse(raw)||[];
+    if(!list.length) return;
+    document.getElementById('wlc-recent-btn').style.display='';
+    const rl=document.getElementById('wlc-rec-list');
+    rl.innerHTML='';
+    list.slice(0,6).forEach(r=>{
+      const row=document.createElement('div');
+      row.className='wlc-rec-item';
+      row.innerHTML=`<span class="wlc-rec-name">${r.title||'Sans titre'}</span><span class="wlc-rec-date">${r.date||''}</span>`;
+      row.onclick=()=>{
+        // On ne peut que re-ouvrir si on a le contenu stocké
+        if(r.xml){
+          wlcDismiss();
+          try{
+            score.parts=[]; score.activePart=0; score.mergeTab=false;
+            selEl=null; selZone='staff'; cursorPos={mi:0,pos:0};
+            undoStack=[]; redoStack=[];
+            resetAllUI();
+            parseMXML(r.xml);
+            syncPartitionPanel(); isDirty=false;
+            render(); buildRehearsalList(); buildPartsMgr();
+            updatePartSelector();
+          }catch(e){ alert('Erreur: '+e.message); }
+        }
+      };
+      rl.appendChild(row);
+    });
+  }catch(e){}
+}
+
+function saveRecent(xml){
+  try{
+    const raw=localStorage.getItem('mxml_recents');
+    let list=raw?JSON.parse(raw):[];
+    const now=new Date();
+    const dateStr=now.toLocaleDateString('fr-FR')+' '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    list=list.filter(r=>r.title!==score.title);
+    list.unshift({title:score.title||'Sans titre', date:dateStr, xml:xml.substring(0,50000)});
+    list=list.slice(0,6);
+    localStorage.setItem('mxml_recents',JSON.stringify(list));
+  }catch(e){}
+}
+
+// ═══════════════════════════════════════════════════════
+// DIALOGUE NOUVELLE PARTITION — gestion de la file de pistes
+// ═══════════════════════════════════════════════════════
+
+// Clés de clef vocales communes
+const VOICE_CLEFS=[
+  {value:'G_2',      label:'Sol (soprano / contralto)'},
+  {value:'G_2_8down',label:'Sol 8vb (ténor, voix haute masculine)'},
+  {value:'G_2_15down',label:'Sol 15mb (basse — octave basse)'},
+  {value:'C_1',      label:'Ut 1 (soprano)'},
+  {value:'C_2',      label:'Ut 2 (mezzo-soprano)'},
+  {value:'C_3',      label:'Ut 3 (alto / contralto)'},
+  {value:'C_4',      label:'Ut 4 (ténor)'},
+  {value:'F_4',      label:'Fa (baryton / basse)'},
+  {value:'F_4_8down',label:'Fa 8vb (basse profonde)'},
+];
+
+function voiceClefOptions(selected='G_2'){
+  return VOICE_CLEFS.map(c=>`<option value="${c.value}"${c.value===selected?' selected':''}>${c.label}</option>`).join('');
+}
+
+function selectTrackType(type){
+  const dlg=document.getElementById('dlg-new');
+  dlg.querySelectorAll('.track-type-btn').forEach(b=>b.classList.remove('on'));
+  dlg.querySelectorAll('.track-type-pane').forEach(p=>p.classList.remove('on'));
+  dlg.querySelector('#tt-'+type)?.classList.add('on');
+  dlg.querySelector('#tt-pane-'+type)?.classList.add('on');
+  if(type==='strings') nwtStringsInstrChange();
+  else if(type==='voice'){
+    const rows=dlg.querySelector('#nwt-voice-rows');
+    if(rows && rows.children.length===0) nwtAddVoiceRow();
+  }
+}
+
+function nwtStringsInstrChange(){
+  const instrId=document.getElementById('nwt-strings-instr').value;
+  const cat=INSTRUMENT_CATALOG.find(c=>c.id===instrId);
+  const nameEl=document.getElementById('nwt-strings-name');
+  if(!nameEl.value || nameEl.dataset.auto==='1'){
+    nameEl.value=cat?cat.label:'';
+    nameEl.dataset.auto='1';
+  }
+  const tabCb=document.getElementById('nwt-strings-tab');
+  if(cat && !cat.hasTab){ tabCb.checked=false; tabCb.disabled=true; }
+  else { tabCb.disabled=false; }
+}
+
+// Presets chœur
+function nwtVoicePreset(preset){
+  const rows=document.getElementById('nwt-voice-rows');
+  rows.innerHTML=''; nwtVoiceCount=0;
+  const configs={
+    'SATB':[{n:'Soprano',c:'G_2'},{n:'Alto',c:'C_3'},{n:'Ténor',c:'G_2_8down'},{n:'Basse',c:'F_4'}],
+    'SA':  [{n:'Soprano',c:'G_2'},{n:'Alto',c:'C_3'}],
+    'TB':  [{n:'Ténor',c:'G_2_8down'},{n:'Basse',c:'F_4'}],
+    'SSA': [{n:'Soprano 1',c:'G_2'},{n:'Soprano 2',c:'G_2'},{n:'Alto',c:'C_3'}],
+  };
+  (configs[preset]||[]).forEach(v=>nwtAddVoiceRowWith(v.n,v.c));
+}
+
+function nwtAddVoiceRow(){ nwtAddVoiceRowWith('','G_2'); }
+
+function nwtAddVoiceRowWith(name,clef){
+  nwtVoiceCount++;
+  const row=document.createElement('div');
+  row.style.cssText='display:flex;gap:4px;align-items:center';
+  row.innerHTML=`
+    <span style="cursor:grab;color:#bbb;font-size:14px;padding:0 2px" title="Glisser pour réordonner">⠿</span>
+    <input class="fi" value="${name||('Voix '+nwtVoiceCount)}" style="flex:1;font-size:11px" data-voice-name>
+    <select class="fi" style="flex:2;font-size:10px" data-voice-clef>${voiceClefOptions(clef||'G_2')}</select>
+    <button class="btn btn-s" style="font-size:11px;padding:3px 6px;flex-shrink:0" onclick="this.closest('div').remove()">✕</button>`;
+  document.getElementById('nwt-voice-rows').appendChild(row);
+}
+
+function nwtAddTrack(type){
+  let entry={type};
+  if(type==='strings'){
+    const instrId=document.getElementById('nwt-strings-instr').value;
+    const cat=INSTRUMENT_CATALOG.find(c=>c.id===instrId)||INSTRUMENT_CATALOG[0];
+    const name=document.getElementById('nwt-strings-name').value||cat.label;
+    const hasTab=document.getElementById('nwt-strings-tab').checked&&cat.hasTab!==false;
+    entry={type,instrId,name,hasTab,
+      clef:cat.clef,clefOctave:cat.clefOctave,
+      tuning:TUNING_SEMIS[cat.tuningKey]||TUNING_SEMIS.guitar,
+      strings:cat.strings};
+    document.getElementById('nwt-strings-name').value='';
+    document.getElementById('nwt-strings-name').dataset.auto='';
+  } else if(type==='piano'){
+    const name=document.getElementById('nwt-piano-name').value||'Piano';
+    const clefR=document.getElementById('nwt-piano-clef-r').value;
+    const clefL=document.getElementById('nwt-piano-clef-l').value;
+    entry={type,name,clefR,clefL};
+    document.getElementById('nwt-piano-name').value='Piano';
+  } else if(type==='voice'){
+    const rows=[...document.querySelectorAll('#nwt-voice-rows > div')];
+    if(!rows.length){ alert('Ajoutez au moins une voix.'); return; }
+    const voices=rows.map(r=>({
+      name:r.querySelector('[data-voice-name]').value||'Voix',
+      clef:r.querySelector('[data-voice-clef]').value
+    }));
+    const firstName=voices.length===1?voices[0].name:voices.map(v=>v.name).join(' + ');
+    entry={type,name:firstName,voices};
+    document.getElementById('nwt-voice-rows').innerHTML='';
+    nwtVoiceCount=0;
+  }
+  nwtQueue.push(entry);
+  nwtRenderQueue();
+  // Réinitialiser dans le dialogue nouvelle partition seulement
+  const dlg=document.getElementById('dlg-new');
+  dlg.querySelectorAll('.track-type-btn').forEach(b=>b.classList.remove('on'));
+  dlg.querySelectorAll('.track-type-pane').forEach(p=>p.classList.remove('on'));
+}
+
+// ── File d'attente avec drag-and-drop ──
+function nwtRenderQueue(){
+  const q=document.getElementById('nwt-queue');
+  if(!nwtQueue.length){
+    q.innerHTML='<div style="font-size:10px;color:#aaa;font-style:italic;padding:4px">Aucune piste ajoutée — la partition utilisera une guitare standard</div>';
+    return;
+  }
+  q.innerHTML='';
+  nwtQueue.forEach((e,i)=>{
+    const typeIco={strings:'🎸',piano:'🎹',voice:'🎤'}[e.type]||'🎵';
+    const badge=e.type==='piano'?'Piano':e.type==='voice'?'Voix':(INSTRUMENT_CATALOG.find(c=>c.id===e.instrId)?.label||e.instrId||'');
+    const item=document.createElement('div');
+    item.className='track-queue-item';
+    item.draggable=true;
+    item.dataset.idx=i;
+    item.innerHTML=`
+      <span style="cursor:grab;color:#bbb;margin-right:2px" title="Déplacer">⠿</span>
+      <span>${typeIco} ${e.name||''}</span>
+      <span class="tq-badge">${badge}</span>
+      <button class="tq-rm" onclick="nwtRemoveTrack(${i})" title="Supprimer">✕</button>`;
+    // Drag-and-drop entre éléments
+    item.addEventListener('dragstart',e2=>{e2.dataTransfer.setData('text/plain',i);item.style.opacity='.4';});
+    item.addEventListener('dragend',()=>{item.style.opacity='';});
+    item.addEventListener('dragover',e2=>{e2.preventDefault();item.style.background='#f0ece4';});
+    item.addEventListener('dragleave',()=>{item.style.background='';});
+    item.addEventListener('drop',e2=>{
+      e2.preventDefault(); item.style.background='';
+      const from=parseInt(e2.dataTransfer.getData('text/plain'));
+      const to=parseInt(item.dataset.idx);
+      if(from===to) return;
+      const moved=nwtQueue.splice(from,1)[0];
+      nwtQueue.splice(to,0,moved);
+      nwtRenderQueue();
+    });
+    q.appendChild(item);
+  });
+}
+
+function nwtRemoveTrack(i){ nwtQueue.splice(i,1); nwtRenderQueue(); }
+
+// ═══════════════════════════════════════════════════════
+// CRÉER LES PISTES À PARTIR DE LA FILE (appelé par confirmNew)
+// ═══════════════════════════════════════════════════════
+function buildPartsFromQueue(queue, nMeas, timeNum, timeDen, bpm){
+  const parts=[];
+  let pid=1;
+
+  const mkPartMeasures=(clef,clefOctave,clefLine)=>{
+    const ms=[];
+    for(let i=0;i<nMeas;i++){
+      const m=mkM(i+1);
+      if(i===0){
+        m.clef=clef||'G'; m.clefOctave=clefOctave||0; m.clefLine=clefLine||2;
+        m.timeNum=timeNum; m.timeDen=timeDen; m.key=0; m.tempo=bpm;
+      }
+      ms.push(m);
+    }
+    return ms;
+  };
+
+  const clefFromCode=(code)=>{
+    if(!code) return {clef:'G',clefLine:2,clefOctave:0};
+    const p2=code.split('_');
+    const clef=p2[0];
+    const line=parseInt(p2[1])||2;
+    let oct=0;
+    if(code.includes('8down')) oct=-1;
+    else if(code.includes('8up')) oct=1;
+    else if(code.includes('15down')) oct=-2;
+    return {clef,clefLine:line,clefOctave:oct};
+  };
+
+  // File vide → retourner tableau vide, confirmNew gère le fallback
+  if(!queue||!queue.length) return [];
+
+  queue.forEach(e=>{
+    if(e.type==='strings'){
+      const cat=INSTRUMENT_CATALOG.find(c=>c.id===e.instrId)||INSTRUMENT_CATALOG[0];
+      const ms=mkPartMeasures(cat.clef, cat.clefOctave||0, 2);
+      // La piste portée principale : hasTab=false (sa TAB est sur l'autoTab liée)
+      const p={id:'P'+pid++, name:e.name||cat.label, instrId:e.instrId,
+        strings:e.strings||cat.strings,
+        tuning:e.tuning?[...e.tuning]:[...TUNING_SEMIS[cat.tuningKey]||TUNING_SEMIS.guitar],
+        hasTab:false, showStaff:true,
+        measures:ms, clef:cat.clef, clefOctave:cat.clefOctave||0};
+      parts.push(p);
+      if(e.hasTab){
+        const tabMs=mkPartMeasures('G',0,2);
+        parts.push({id:'P'+pid++, name:p.name+' TAB', autoTab:true, parentId:p.id,
+          instrId:e.instrId, strings:p.strings,
+          tuning:[...p.tuning], hasTab:true,
+          measures:tabMs, showTab:true, showStaff:false});
+      }
+    } else if(e.type==='piano'){
+      const clefR=clefFromCode(e.clefR||'G_2');
+      const clefL=clefFromCode(e.clefL||'F_4');
+      const msR=mkPartMeasures(clefR.clef,clefR.clefOctave,clefR.clefLine);
+      const msL=mkPartMeasures(clefL.clef,clefL.clefOctave,clefL.clefLine);
+      const gId='G'+pid;
+      parts.push({id:'P'+pid++, name:(e.name||'Piano')+' MD', instrId:'piano',
+        strings:0, hasTab:false, showStaff:true, measures:msR, groupId:gId, groupRole:'right',
+        clef:clefR.clef, clefOctave:clefR.clefOctave});
+      parts.push({id:'P'+pid++, name:(e.name||'Piano')+' MG', instrId:'piano',
+        strings:0, hasTab:false, showStaff:true, measures:msL, groupId:gId, groupRole:'left',
+        clef:clefL.clef, clefOctave:clefL.clefOctave});
+    } else if(e.type==='voice'){
+      (e.voices||[{name:'Voix',clef:'G_2'}]).forEach(v=>{
+        const cf=clefFromCode(v.clef||'G_2');
+        const ms=mkPartMeasures(cf.clef,cf.clefOctave,cf.clefLine);
+        parts.push({id:'P'+pid++, name:v.name||'Voix', instrId:'voice',
+          strings:0, hasTab:false, showStaff:true, measures:ms,
+          clef:cf.clef, clefOctave:cf.clefOctave});
+      });
+    }
+  });
+  return parts;
+}
+
+// ═══════════════════════════════════════════════════════
+// confirmNew — version propre
+// ═══════════════════════════════════════════════════════
+function confirmNew(){
+  const t=document.getElementById('nw-title').value||'Nouvelle partition';
+  const c=document.getElementById('nw-composer').value;
+  const bpm=parseInt(document.getElementById('nw-tempo').value)||80;
+  const [tn,td]=document.getElementById('nw-time').value.split('/').map(Number);
+  const mc=parseInt(document.getElementById('nw-meas').value)||8;
+
+  // 1. Construire les pistes depuis la file AVANT de tout réinitialiser
+  const builtParts=buildPartsFromQueue(nwtQueue, mc, tn, td, bpm);
+  nwtQueue=[];
+
+
+
+  // 2. Réinitialiser le score (sans toucher à l'UI instrument)
+  score.title=t; score.composer=c; score.tempo=bpm;
+  score.timeNum=tn; score.timeDen=td; score.key=0;
+  score.parts=[]; score.activePart=0; score.mergeTab=false;
+  score.measures=[];
+  selEl=null; selZone='staff'; cursorPos={mi:0,pos:0};
+  undoStack=[]; redoStack=[]; isDirty=false;
+
+  // 3. Appliquer les pistes construites
+  if(builtParts.length>0){
+    score.parts=builtParts;
+    score.activePart=0;
+    score.measures=builtParts[0].measures;
+    // Infos instrument depuis la 1ère piste principale (non-autoTab)
+    const firstMain=builtParts.find(p=>!p.autoTab&&!p.mergedTab)||builtParts[0];
+    score.instr=firstMain.instrId||'guitar';
+    // Pour les cordes : strings depuis la piste principale ou son autoTab
+    const firstTab=builtParts.find(p=>p.autoTab&&p.parentId===firstMain.id);
+    const ns=(firstMain.strings||0)||(firstTab?.strings||0);
+    score.strings=ns>0?ns:0;
+    score.tuning=(firstMain.tuning||firstTab?.tuning||TUNING_SEMIS.guitar).map(s=>noteNameFromSemi(s));
+    // Mettre à jour curString pour la navigation tab
+    if(ns>0) curString=Math.min(curString,ns);
+  } else {
+    // File vide → fallback guitare standard
+    score.instr='guitar'; score.strings=6;
+    score.tuning=TUNING_SEMIS.guitar.map(s=>noteNameFromSemi(s));
+    for(let i=0;i<mc;i++) score.measures.push(mkM(i+1));
+    const m0=score.measures[0];
+    m0.clef='G'; m0.clefOctave=0; m0.clefLine=2;
+    m0.timeNum=tn; m0.timeDen=td; m0.key=0; m0.tempo=bpm;
+    score.parts=[];
+  }
+
+  // 4. Mettre à jour l'UI sans toucher à score.parts
+  resetAllUI();
+  buildStringLabels(); // Reconstruire les boutons de cordes pour le bon instrument
+  updateHeader();
+  updatePartSelector();
+  buildRehearsalList();
+  buildPartsMgr();
+  syncPartitionPanel();
+
+  // 5. Mettre à jour les labels
+  document.getElementById('disp-title').textContent=score.title;
+  document.getElementById('disp-composer').textContent=score.composer||'';
+  document.getElementById('m-title').value=score.title;
+  document.getElementById('m-composer').value=score.composer||'';
+
+  closeDlg('dlg-new');
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+// GESTIONNAIRE DE PISTES (onglet PARTITION)
+// ═══════════════════════════════════════════════════════
+function buildPartsMgr(){
+  const container=document.getElementById('parts-mgr-list');
+  if(!container) return;
+
+  const parts=score.parts||[];
+  if(parts.length===0){
+    // Mode mono-piste
+    const cat=INSTRUMENT_CATALOG.find(c=>c.id===score.instr)||INSTRUMENT_CATALOG[0];
+    container.innerHTML=`<div style="padding:4px 0">
+      <div style="display:flex;align-items:center;gap:5px;padding:3px 0">
+        <span style="font-size:10px;color:#555;flex:1;cursor:pointer;font-weight:600" onclick="openInstrDialog()" title="Cliquer pour modifier">${cat.label||'Instrument'}</span>
+        <label style="font-size:9px;display:flex;align-items:center;gap:2px">
+          <input type="checkbox" checked onchange="render()"> Portée
+        </label>
+      </div>
+    </div>`;
+    return;
+  }
+
+  const mainParts=parts.filter(p=>!p.autoTab&&!p.mergedTab&&!p.autoStaff);
+  container.innerHTML='';
+
+  // CSS inline pour les lignes compactes
+  const rowStyle='display:flex;align-items:center;gap:4px;padding:2px 0;border-bottom:1px solid #f0ece4;font-size:10px';
+  const cbStyle='font-size:9px;display:flex;align-items:center;gap:2px;white-space:nowrap';
+  const xBtnStyle='background:none;border:none;cursor:pointer;color:#bbb;font-size:12px;padding:0 1px;line-height:1';
+  const addBtnStyle='background:none;border:1px dashed #88bb88;border-radius:2px;cursor:pointer;color:#2a6030;font-size:9px;padding:1px 4px';
+
+  mainParts.forEach((p,ri)=>{
+    const pi=parts.indexOf(p);
+    const isActive=pi===score.activePart;
+    const cat=INSTRUMENT_CATALOG.find(c=>c.id===p.instrId);
+    const linkedTab=parts.find(t=>t.autoTab&&t.parentId===p.id);
+    const linkedTabPi=linkedTab?parts.indexOf(linkedTab):-1;
+    const linkedStaff=parts.find(t=>t.autoStaff&&t.parentId===p.id);
+    const linkedStaffPi=linkedStaff?parts.indexOf(linkedStaff):-1;
+    const isStrings=cat?.hasTab!==false&&p.instrId!=='piano'&&p.instrId!=='voice';
+
+    const wrap=document.createElement('div');
+    wrap.style.cssText='padding:2px 0';
+
+    // Ligne principale : [⠿] [nom instrument cliquable] [☑Portée ✕] [☑TAB ✕ / + TAB]
+    const mainRow=document.createElement('div');
+    mainRow.style.cssText=rowStyle+(isActive?';background:rgba(200,84,26,0.06);border-radius:3px':'');
+
+    // Poignée drag
+    const handle=document.createElement('span');
+    handle.textContent='⠿'; handle.style.cssText='cursor:grab;color:#ccc;font-size:13px;flex-shrink:0';
+    mainRow.appendChild(handle);
+
+    // Nom instrument — cliquable pour modifier
+    const nameEl=document.createElement('span');
+    nameEl.style.cssText=`flex:1;font-weight:${isActive?'700':'500'};color:${isActive?'#c8541a':'#333'};cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap`;
+    nameEl.title='Cliquer pour modifier l\'instrument';
+    nameEl.textContent=(isActive?'▶ ':'')+( p.name||(cat?.label)||'Piste '+(ri+1));
+    nameEl.onclick=()=>{ pmgrSelectPart(pi); pmgrOpenInstr(pi); };
+    mainRow.appendChild(nameEl);
+
+    // Case Portée + ✕
+    const staffLabel=document.createElement('label');
+    staffLabel.style.cssText=cbStyle;
+    const staffCb=document.createElement('input'); staffCb.type='checkbox';
+    staffCb.checked=p.showStaff!==false;
+    staffCb.title='Afficher/masquer la portée';
+    staffCb.onchange=()=>{ togglePartStaff(pi,staffCb.checked); };
+    staffLabel.appendChild(staffCb);
+    staffLabel.appendChild(Object.assign(document.createElement('span'),{textContent:'Portée'}));
+    mainRow.appendChild(staffLabel);
+    // ✕ supprimer la piste principale (portée)
+    const delBtn=document.createElement('button');
+    delBtn.style.cssText=xBtnStyle+'color:#e88';
+    delBtn.textContent='✕'; delBtn.title='Supprimer cette piste';
+    delBtn.onclick=()=>pmgrDeletePart(pi);
+    mainRow.appendChild(delBtn);
+
+    // Séparateur
+    mainRow.appendChild(Object.assign(document.createElement('span'),{textContent:'|',style:'color:#ddd;font-size:10px'}));
+
+    // Case TAB ou bouton + TAB
+    if(linkedTab){
+      const tabLabel=document.createElement('label');
+      tabLabel.style.cssText=cbStyle;
+      const tabCb=document.createElement('input'); tabCb.type='checkbox';
+      tabCb.checked=linkedTab.showTab!==false;
+      tabCb.title='Afficher/masquer la tablature liée';
+      tabCb.onchange=()=>togglePartTab(linkedTabPi,tabCb.checked);
+      tabLabel.appendChild(tabCb);
+      tabLabel.appendChild(Object.assign(document.createElement('span'),{textContent:'TAB'}));
+      mainRow.appendChild(tabLabel);
+      // Sélecteur instrument TAB inline
+      const tabSel=document.createElement('select');
+      tabSel.style.cssText='font-size:8px;border:1px solid #c8c0aa;border-radius:2px;padding:0 2px;max-width:72px';
+      INSTRUMENT_CATALOG.filter(c=>c.hasTab).forEach(c=>{
+        const o=document.createElement('option');
+        o.value=c.id; o.textContent=c.label;
+        if(c.id===linkedTab.instrId) o.selected=true;
+        tabSel.appendChild(o);
+      });
+      tabSel.onchange=()=>pmgrSetTabInstr(linkedTabPi,tabSel.value);
+      mainRow.appendChild(tabSel);
+      // ✕ supprimer TAB
+      const delTab=document.createElement('button');
+      delTab.style.cssText=xBtnStyle; delTab.textContent='✕';
+      delTab.title='Supprimer la tablature liée';
+      delTab.onclick=()=>pmgrDeleteLinked(linkedTabPi);
+      mainRow.appendChild(delTab);
+    } else if(isStrings){
+      // Bouton + TAB
+      const addTabBtn=document.createElement('button');
+      addTabBtn.style.cssText=addBtnStyle;
+      addTabBtn.textContent='+ TAB'; addTabBtn.title='Ajouter une tablature liée';
+      addTabBtn.onclick=()=>pmgrAddLinkedTab(pi);
+      mainRow.appendChild(addTabBtn);
+    }
+
+    wrap.appendChild(mainRow);
+
+    // Portée liée (si TAB principale avec portée liée)
+    if(linkedStaff){
+      const staffRow=document.createElement('div');
+      staffRow.style.cssText='display:flex;align-items:center;gap:4px;padding:2px 0 2px 16px;font-size:9px;color:#666';
+      const sCb=document.createElement('input'); sCb.type='checkbox';
+      sCb.checked=linkedStaff.showStaff!==false;
+      sCb.onchange=()=>togglePartStaff(linkedStaffPi,sCb.checked);
+      staffRow.appendChild(sCb);
+      staffRow.appendChild(Object.assign(document.createElement('span'),{textContent:'Portée liée'}));
+      // Clef
+      const clefSel=document.createElement('select');
+      clefSel.style.cssText='font-size:8px;border:1px solid #c8c0aa;border-radius:2px;padding:0 2px;max-width:62px';
+      [['G_2','Sol'],['G_2_8down','Sol8vb'],['F_4','Fa'],['F_4_8down','Fa8vb'],['C_3','Ut3'],['C_4','Ut4']].forEach(([v,l])=>{
+        const o=document.createElement('option'); o.value=v; o.textContent=l;
+        if(v===_clefToCode(linkedStaff)) o.selected=true;
+        clefSel.appendChild(o);
+      });
+      clefSel.id='linked-clef-'+linkedStaffPi;
+      clefSel.onchange=()=>pmgrApplyLinkedClef(linkedStaffPi);
+      staffRow.appendChild(clefSel);
+      const delS=document.createElement('button');
+      delS.style.cssText=xBtnStyle; delS.textContent='✕';
+      delS.onclick=()=>pmgrDeleteLinked(linkedStaffPi);
+      staffRow.appendChild(delS);
+      wrap.appendChild(staffRow);
+    }
+
+    // Drag-and-drop
+    wrap.draggable=true; wrap.dataset.ri=ri;
+    wrap.addEventListener('dragstart',ev=>{ev.dataTransfer.setData('text/plain',String(ri));wrap.style.opacity='.4';});
+    wrap.addEventListener('dragend',()=>wrap.style.opacity='');
+    wrap.addEventListener('dragover',ev=>{ev.preventDefault();wrap.style.background='#f0ece4';});
+    wrap.addEventListener('dragleave',()=>wrap.style.background='');
+    wrap.addEventListener('drop',ev=>{
+      ev.preventDefault(); wrap.style.background='';
+      const fromRi=parseInt(ev.dataTransfer.getData('text/plain'));
+      if(fromRi!==ri) pmgrReorderParts(fromRi,ri);
+    });
+
+    container.appendChild(wrap);
+  });
+}
+
+// Helper : reconstruire le code clef depuis une piste
+function _clefToCode(p){
+  const m0=p.measures?.[0];
+  const clef=m0?.clef||p.clef||'G';
+  const line=m0?.clefLine||2;
+  const oct=m0?.clefOctave||0;
+  let code=clef+'_'+line;
+  if(oct===-1) code+='_8down';
+  else if(oct===1) code+='_8up';
+  else if(oct===-2) code+='_15down';
+  return code;
+}
+
+function pmgrRename(pi, val, field){
+  if(score.parts[pi]) score.parts[pi][field]=val;
+  render();
+}
+
+function pmgrSetTabInstr(tabPi, instrId){
+  const p=score.parts[tabPi];
+  if(!p) return;
+  const cat=INSTRUMENT_CATALOG.find(c=>c.id===instrId)||INSTRUMENT_CATALOG[0];
+  p.instrId=instrId;
+  if(cat.strings) p.strings=cat.strings;
+  if(TUNING_SEMIS[cat.tuningKey]) p.tuning=[...TUNING_SEMIS[cat.tuningKey]];
+  buildPartsMgr(); render();
+}
+
+// Ajouter une TAB liée à une piste portée
+function pmgrAddLinkedTab(pi){
+  const p=score.parts[pi];
+  if(!p) return;
+  if(score.parts.find(t=>t.autoTab&&t.parentId===p.id)){
+    alert('Cette piste a déjà une tablature liée.'); return;
+  }
+  // Lire le sélecteur d'instrument choisi
+  const sel=document.getElementById('add-tab-instr-'+pi);
+  const instrId=sel?sel.value:(p.instrId||'guitar');
+  pmgrAddTab(pi, instrId);
+}
+
+// Ajouter une portée liée à une piste TAB
+function pmgrAddLinkedStaff(pi){
+  const p=score.parts[pi];
+  if(!p) return;
+  if(score.parts.find(t=>t.autoStaff&&t.parentId===p.id)){
+    alert('Cette piste a déjà une portée liée.'); return;
+  }
+  const sel=document.getElementById('add-staff-clef-'+pi);
+  const clefCode=sel?sel.value:'G_2';
+  const cf=_clefFromCode(clefCode);
+  saveHistory();
+  const nMeas=(p.measures?.length)||8;
+  const ms=[];
+  for(let i=0;i<nMeas;i++){
+    const src=p.measures?.[i];
+    const m=mkM(i+1);
+    if(i===0){
+      m.clef=cf.clef; m.clefOctave=cf.clefOctave; m.clefLine=cf.clefLine;
+      m.timeNum=src?.timeNum||score.timeNum||4;
+      m.timeDen=src?.timeDen||score.timeDen||4;
+      m.key=src?.key||0; m.tempo=src?.tempo||score.tempo||80;
+    }
+    ms.push(m);
+  }
+  const newStaff={
+    id:'STAFF_'+p.id+'_'+Date.now().toString(36),
+    name:p.name+' Portée',
+    autoStaff:true, parentId:p.id,
+    instrId:p.instrId||'guitar',
+    strings:0, hasTab:false, showStaff:true,
+    measures:ms, clef:cf.clef, clefOctave:cf.clefOctave
+  };
+  const insertIdx=score.parts.indexOf(p)+1;
+  score.parts.splice(insertIdx,0,newStaff);
+  updatePartSelector(); buildPartsMgr(); render();
+}
+
+function pmgrDeleteLinked(lpi){
+  if(!confirm('Supprimer cette piste liée ?')) return;
+  saveHistory();
+  score.parts.splice(lpi,1);
+  updatePartSelector(); buildPartsMgr(); render();
+}
+
+function pmgrApplyLinkedClef(lpi){
+  const p=score.parts[lpi];
+  if(!p||!p.measures) return;
+  const sel=document.getElementById('linked-clef-'+lpi);
+  if(!sel) return;
+  const cf=_clefFromCode(sel.value);
+  saveHistory();
+  p.clef=cf.clef; p.clefOctave=cf.clefOctave;
+  if(p.measures[0]){
+    p.measures[0].clef=cf.clef;
+    p.measures[0].clefOctave=cf.clefOctave;
+    p.measures[0].clefLine=cf.clefLine;
+  }
+  render();
+}
+
+function _clefFromCode(code){
+  if(!code) return {clef:'G',clefLine:2,clefOctave:0};
+  const p=code.split('_');
+  const clef=p[0], line=parseInt(p[1])||2;
+  let oct=0;
+  if(code.includes('8down')) oct=-1;
+  else if(code.includes('8up')) oct=1;
+  else if(code.includes('15down')) oct=-2;
+  return {clef,clefLine:line,clefOctave:oct};
+}
+
+
+function pmgrMovePart(pi, dir){
+  const mainParts=score.parts.filter(p=>!p.autoTab&&!p.mergedTab);
+  const p=score.parts[pi];
+  if(!p) return;
+  const ri=mainParts.indexOf(p);
+  if(ri<0) return;
+  const targetRi=ri+dir;
+  if(targetRi<0||targetRi>=mainParts.length) return;
+  pmgrReorderParts(ri, targetRi);
+}
+
+function pmgrReorderParts(fromRi, toRi){
+  // Réordonner les pistes "principales" (non-autoTab) + leurs autoTabs associées
+  const mainParts=score.parts.filter(p=>!p.autoTab&&!p.mergedTab);
+  if(fromRi<0||fromRi>=mainParts.length||toRi<0||toRi>=mainParts.length) return;
+  saveHistory();
+
+  // Construire des groupes [piste + ses autoTabs]
+  const groups=mainParts.map(p=>{
+    const tabs=score.parts.filter(t=>t.autoTab&&t.parentId===p.id);
+    return [p,...tabs];
+  });
+
+  // Déplacer le groupe
+  const moved=groups.splice(fromRi,1)[0];
+  groups.splice(toRi,0,moved);
+
+  // Reconstruire score.parts : groupes réordonnés + mergedTab à la fin
+  const merged=score.parts.filter(p=>p.mergedTab);
+  score.parts=[...groups.flat(),...merged];
+
+  // Ajuster activePart
+  const activeP=mainParts[Math.min(score.activePart, mainParts.length-1)]||mainParts[0];
+  if(activeP) score.activePart=score.parts.indexOf(activeP);
+  score.measures=score.parts[score.activePart]?.measures||score.measures;
+
+  updatePartSelector(); buildPartsMgr(); render();
+}
+
+function pmgrSelectPart(pi){
+  if(score.parts[pi]){
+    score.activePart=pi;
+    score.measures=score.parts[pi].measures||[];
+    selEl=null; cursorPos={mi:0,pos:0};
+    updatePartSelector();
+    buildPartsMgr();
+    render();
+  }
+}
+
+function pmgrOpenInstr(pi){
+  score.activePart=pi;
+  score.measures=score.parts[pi]?.measures||[];
+  updatePartSelector();
+  openInstrDialog();
+}
+
+function pmgrAddTab(pi, instrIdOverride){
+  const p=score.parts[pi];
+  if(!p) return;
+  if(score.parts.find(t=>t.autoTab&&t.parentId===p.id)){
+    alert('Cette piste a déjà une tablature liée.'); return;
+  }
+  saveHistory();
+  const instrId=instrIdOverride||p.instrId||'guitar';
+  const nMeas=(p.measures?p.measures.length:score.measures.length)||8;
+  const cat=INSTRUMENT_CATALOG.find(c=>c.id===instrId)||INSTRUMENT_CATALOG[0];
+  const tuning=(p.tuning&&p.tuning.length>0)?[...p.tuning]:[...(TUNING_SEMIS[cat.tuningKey]||TUNING_SEMIS.guitar)];
+  const strings=p.strings||tuning.length||cat.strings||6;
+
+  // Construire des mesures vierges calquées sur la piste parente
+  const tabMs=[];
+  for(let i=0;i<nMeas;i++){
+    const src=p.measures?p.measures[i]:null;
+    const m=mkM(i+1);
+    if(i===0){
+      m.clef='G'; m.clefOctave=0; m.clefLine=2;
+      if(src){ m.timeNum=src.timeNum; m.timeDen=src.timeDen; m.key=src.key; m.tempo=src.tempo; }
+      else { m.timeNum=score.timeNum||4; m.timeDen=score.timeDen||4; m.key=0; m.tempo=score.tempo||80; }
+    }
+    tabMs.push(m);
+  }
+  const newTab={
+    id:'TAB_'+p.id+'_'+Date.now().toString(36),
+    name:p.name+' TAB',
+    autoTab:true, parentId:p.id,
+    instrId:p.instrId||cat.id,
+    strings, tuning,
+    hasTab:true, measures:tabMs,
+    showStaff:false, showTab:true
+  };
+  // La piste parente n'affiche plus sa propre TAB (elle est sur l'autoTab)
+  p.hasTab=false;
+  p.showStaff=true;
+  // Insérer juste après la piste parente
+  const insertIdx=score.parts.indexOf(p)+1;
+  score.parts.splice(insertIdx,0,newTab);
+  updatePartSelector(); buildPartsMgr(); render();
+}
+
+function pmgrSyncTab(pi){
+  // Synchronise l'accordage de la TAB liée depuis la piste parent
+  const p=score.parts[pi];
+  if(!p) return;
+  const autoTab=score.parts.find(t=>t.autoTab&&t.parentId===p.id);
+  if(!autoTab) return;
+  autoTab.tuning=[...(p.tuning||[])];
+  autoTab.strings=p.strings;
+  render();
+  buildPartsMgr();
+}
+
+function pmgrDeletePart(pi){
+  if(!confirm('Supprimer cette piste et son contenu ?')) return;
+  saveHistory();
+  const p=score.parts[pi];
+  // Supprimer aussi la TAB liée si elle existe
+  score.parts=score.parts.filter(t=>!(t.autoTab&&t.parentId===p.id));
+  score.parts.splice(score.parts.indexOf(p),1);
+  if(score.activePart>=score.parts.length) score.activePart=Math.max(0,score.parts.length-1);
+  if(score.parts.length>0) score.measures=score.parts[score.activePart].measures||[];
+  else { score.parts=[]; score.measures=score.measures; }
+  updatePartSelector(); buildPartsMgr(); render();
+}
+
+function pmgrToggleVerse(pi,verse,on){
+  const p=score.parts[pi];
+  if(!p) return;
+  if(!p.verses) p.verses={};
+  p.verses[verse]= on;
+  if(pi===score.activePart){
+    const sel=document.getElementById('verse-sel');
+    if(sel && on) sel.value=String(verse);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// SAUTS DE LIGNE / PAGE
+// ═══════════════════════════════════════════════════════
+function togBreak(type){
+  const mi=getCurMi();
+  if(mi<=0) { document.getElementById('break-status').textContent='⚠ Impossible sur la 1ère mesure'; return; }
+  const measures=score.measures;
+  if(!measures[mi]) return;
+  saveHistory();
+  const m=measures[mi];
+  if(type==='system'){
+    m.newSystem=!m.newSystem;
+    m.newPage=false;
+  } else {
+    m.newPage=!m.newPage;
+    m.newSystem=false;
+  }
+  syncBreakButtons(m);
+  document.getElementById('break-status').textContent='';
+  render();
+}
+
+function clearBreak(){
+  const mi=getCurMi();
+  const m=score.measures?.[mi];
+  if(!m) return;
+  saveHistory();
+  m.newSystem=false; m.newPage=false;
+  syncBreakButtons(m);
+  render();
+}
+
+function clearAllBreaks(){
+  if(!confirm('Supprimer tous les sauts de ligne/page ?')) return;
+  saveHistory();
+  score.measures.forEach(m=>{m.newSystem=false;m.newPage=false;});
+  syncBreakButtons(null);
+  render();
+}
+
+function syncBreakButtons(m){
+  const bs=document.getElementById('btn-new-system');
+  const bp=document.getElementById('btn-new-page');
+  if(bs) bs.classList.toggle('active',!!(m?.newSystem));
+  if(bp) bp.classList.toggle('active',!!(m?.newPage));
+}
+
+// ═══════════════════════════════════════════════════════
+// ORDRE DES MORCEAUX (rehearsal marks)
+// ═══════════════════════════════════════════════════════
+function buildRehearsalOrder(){
+  const sec=document.getElementById('sec-rehearsals-order');
+  const list=document.getElementById('rehearsal-order-list');
+  if(!sec||!list) return;
+
+  // Trouver les morceaux (mesures avec rehearsal mark)
+  const sections=score.measures
+    .map((m,i)=>({mi:i,title:m.rehearsal,num:m.num}))
+    .filter(s=>s.title);
+
+  if(sections.length<2){ sec.style.display='none'; return; }
+  sec.style.display='';
+  list.innerHTML='';
+
+  sections.forEach((s,si)=>{
+    const item=document.createElement('div');
+    item.className='rehearsal-order-item';
+    item.draggable=true;
+    item.dataset.si=si;
+    item.innerHTML=`<span style="color:#bbb">⠿</span>
+      <span style="flex:1">M${s.num} — ${s.title}</span>
+      ${si>0?`<button class="btn btn-s" style="font-size:9px;padding:1px 5px" onclick="reorderRehearsal(${si},-1)">↑</button>`:''}
+      ${si<sections.length-1?`<button class="btn btn-s" style="font-size:9px;padding:1px 5px" onclick="reorderRehearsal(${si},1)">↓</button>`:''}`;
+
+    item.addEventListener('dragstart',ev=>{ev.dataTransfer.setData('text/plain',String(si));item.style.opacity='.4';});
+    item.addEventListener('dragend',()=>item.style.opacity='');
+    item.addEventListener('dragover',ev=>{ev.preventDefault();item.classList.add('drag-over');});
+    item.addEventListener('dragleave',()=>item.classList.remove('drag-over'));
+    item.addEventListener('drop',ev=>{
+      ev.preventDefault();item.classList.remove('drag-over');
+      const from=parseInt(ev.dataTransfer.getData('text/plain'));
+      const to=parseInt(item.dataset.si);
+      if(from!==to) reorderRehearsalByIdx(from,to);
+    });
+    list.appendChild(item);
+  });
+}
+
+function reorderRehearsal(si, dir){
+  const sections=score.measures.map((m,i)=>({mi:i,m})).filter(s=>s.m.rehearsal);
+  const target=sections[si+dir];
+  const current=sections[si];
+  if(!target||!current) return;
+  reorderRehearsalByIdx(si, si+dir);
+}
+
+function reorderRehearsalByIdx(fromSi, toSi){
+  // Trouver les blocs de mesures correspondant à chaque section
+  const measures=score.measures;
+  const sections=measures.map((m,i)=>i).filter(i=>measures[i].rehearsal||i===0);
+  // Ajouter la borne finale
+  sections.push(measures.length);
+
+  // Calculer les blocs : section[i] = measures[sections[i]..sections[i+1]-1]
+  const rehearsalSections=measures.map((m,i)=>i).filter(i=>measures[i].rehearsal);
+  if(!rehearsalSections.length) return;
+
+  // Inclure un bloc "intro" (mesures avant la 1ère rehearsal) si il existe
+  const allBoundaries=[0,...rehearsalSections,measures.length];
+  // Les blocs "morceaux" commencent aux rehearsal marks
+  const blocks=[];
+  for(let bi=0;bi<rehearsalSections.length;bi++){
+    const start=rehearsalSections[bi];
+    const end=rehearsalSections[bi+1]??measures.length;
+    blocks.push(measures.slice(start,end));
+  }
+
+  if(fromSi<0||fromSi>=blocks.length||toSi<0||toSi>=blocks.length) return;
+  saveHistory();
+
+  // Déplacer le bloc
+  const moved=blocks.splice(fromSi,1)[0];
+  blocks.splice(toSi,0,moved);
+
+  // Reconstruire score.measures : intro (avant 1ère rehearsal) + blocs réordonnés
+  const introEnd=rehearsalSections[0];
+  const intro=measures.slice(0,introEnd);
+  const newMeasures=[...intro,...blocks.flat()];
+
+  // Renuméroter
+  newMeasures.forEach((m,i)=>m.num=i+1);
+  score.measures=newMeasures;
+  if(score.parts){
+    score.parts.forEach(p=>{
+      if(p.measures===measures) p.measures=newMeasures;
+    });
+  }
+
+  buildRehearsalList();
+  buildRehearsalOrder();
+  render();
+}
+
+function openAddPartDialog(){
+  _apType='strings'; _apVoiceCount=0;
+  document.querySelectorAll('[id^="ap-tt-"]').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('[id^="ap-pane-"]').forEach(p=>p.classList.remove('on'));
+  apSelectType('strings');
+  openDlg('dlg-add-part');
+}
+
+function apSelectType(type){
+  _apType=type;
+  const dlg=document.getElementById('dlg-add-part');
+  dlg.querySelectorAll('[id^="ap-tt-"]').forEach(b=>b.classList.remove('on'));
+  dlg.querySelectorAll('[id^="ap-pane-"]').forEach(p=>p.classList.remove('on'));
+  dlg.querySelector('#ap-tt-'+type)?.classList.add('on');
+  dlg.querySelector('#ap-pane-'+type)?.classList.add('on');
+  if(type==='strings') apStringsInstrChange();
+  if(type==='voice'){
+    const rows=dlg.querySelector('#ap-voice-rows');
+    if(rows && rows.children.length===0) apAddVoiceRow();
+  }
+}
+
+function apStringsInstrChange(){
+  const instrId=document.getElementById('ap-strings-instr').value;
+  const cat=INSTRUMENT_CATALOG.find(c=>c.id===instrId);
+  if(cat && !cat.hasTab){
+    document.getElementById('ap-strings-tab').checked=false;
+    document.getElementById('ap-strings-tab').disabled=true;
+  } else {
+    document.getElementById('ap-strings-tab').disabled=false;
+  }
+}
+
+function apVoicePreset(preset){
+  const rows=document.getElementById('ap-voice-rows');
+  rows.innerHTML=''; _apVoiceCount=0;
+  const configs={
+    'SATB':[{n:'Soprano',c:'G_2'},{n:'Alto',c:'C_3'},{n:'Ténor',c:'G_2_8down'},{n:'Basse',c:'F_4'}],
+    'SA':  [{n:'Soprano',c:'G_2'},{n:'Alto',c:'C_3'}],
+    'TB':  [{n:'Ténor',c:'G_2_8down'},{n:'Basse',c:'F_4'}],
+    'SSA': [{n:'Soprano 1',c:'G_2'},{n:'Soprano 2',c:'G_2'},{n:'Alto',c:'C_3'}],
+  };
+  (configs[preset]||[]).forEach(v=>apAddVoiceRowWith(v.n,v.c));
+}
+
+function apAddVoiceRow(){ apAddVoiceRowWith('','G_2'); }
+
+function apAddVoiceRowWith(name,clef){
+  _apVoiceCount++;
+  const row=document.createElement('div');
+  row.style.cssText='display:flex;gap:4px;align-items:center';
+  row.innerHTML=`
+    <input class="fi" value="${name||('Voix '+_apVoiceCount)}" style="flex:1;font-size:11px" data-voice-name>
+    <select class="fi" style="flex:2;font-size:10px" data-voice-clef>${voiceClefOptions(clef||'G_2')}</select>
+    <button class="btn btn-s" style="font-size:11px;padding:3px 6px" onclick="this.closest('div').remove()">✕</button>`;
+  document.getElementById('ap-voice-rows').appendChild(row);
+}
+
+function apConfirm(){
+  const nMeas=Math.max((score.parts[0]?.measures||score.measures).length, 8);
+  const tn=score.timeNum||4, td=score.timeDen||4, bpm=score.tempo||80;
+  const entry={type:_apType};
+
+  const clefFromCode=(code)=>{
+    const p2=code.split('_');
+    const clef=p2[0]; const line=parseInt(p2[1])||2;
+    let oct=0;
+    if(code.includes('8down')) oct=-1;
+    else if(code.includes('8up')) oct=1;
+    else if(code.includes('15down')) oct=-2;
+    return {clef,clefLine:line,clefOctave:oct};
+  };
+
+  const mkMs=()=>{
+    const ms=[];
+    for(let i=0;i<nMeas;i++){
+      const m=mkM(i+1);
+      if(i===0){ m.clef='G'; m.clefOctave=0; m.clefLine=2;
+        m.timeNum=tn; m.timeDen=td; m.key=score.key||0; m.tempo=bpm; }
+      ms.push(m);
+    }
+    return ms;
+  };
+
+  const newParts=[];
+  let pid=score.parts.length+1;
+
+  if(_apType==='strings'){
+    const instrId=document.getElementById('ap-strings-instr').value;
+    const name=document.getElementById('ap-strings-name').value||instrId;
+    const hasTab=document.getElementById('ap-strings-tab').checked;
+    const cat=INSTRUMENT_CATALOG.find(c=>c.id===instrId)||INSTRUMENT_CATALOG[0];
+    const tuning=[...(TUNING_SEMIS[cat.tuningKey]||TUNING_SEMIS.guitar)];
+    const ms=mkMs();
+    ms[0].clef=cat.clef; ms[0].clefOctave=cat.clefOctave||0; ms[0].clefLine=2;
+    // Piste portée : hasTab:false (la TAB est sur l'autoTab liée)
+    const p={id:'P'+(pid++)+Date.now().toString(36), name, instrId,
+      strings:cat.strings, tuning, hasTab:false, showStaff:true,
+      measures:ms, clef:cat.clef, clefOctave:cat.clefOctave||0};
+    newParts.push(p);
+    if(hasTab){
+      const tabMs=mkMs();
+      tabMs[0].clef='G'; tabMs[0].clefOctave=0; tabMs[0].clefLine=2;
+      newParts.push({id:'P'+(pid++)+Date.now().toString(36), name:name+' TAB',
+        autoTab:true, parentId:p.id, instrId, strings:cat.strings,
+        tuning:[...tuning], hasTab:true, showStaff:false,
+        measures:tabMs, showTab:true});
+    }
+  } else if(_apType==='piano'){
+    const name=document.getElementById('ap-piano-name').value||'Piano';
+    const clefR=clefFromCode(document.getElementById('ap-piano-clef-r').value||'G_2');
+    const clefL=clefFromCode(document.getElementById('ap-piano-clef-l').value||'F_4');
+    const msR=mkMs(); const msL=mkMs();
+    msR[0].clef=clefR.clef; msR[0].clefOctave=clefR.clefOctave; msR[0].clefLine=clefR.clefLine;
+    msL[0].clef=clefL.clef; msL[0].clefOctave=clefL.clefOctave; msL[0].clefLine=clefL.clefLine;
+    const gId='G'+pid+Date.now().toString(36);
+    newParts.push({id:'P'+(pid++)+Date.now().toString(36), name:name+' MD', instrId:'piano',
+      strings:0, hasTab:false, showStaff:true, measures:msR, groupId:gId, groupRole:'right',
+      clef:clefR.clef, clefOctave:clefR.clefOctave});
+    newParts.push({id:'P'+(pid++)+Date.now().toString(36), name:name+' MG', instrId:'piano',
+      strings:0, hasTab:false, showStaff:true, measures:msL, groupId:gId, groupRole:'left',
+      clef:clefL.clef, clefOctave:clefL.clefOctave});
+  } else if(_apType==='voice'){
+    const rows=[...document.querySelectorAll('#ap-voice-rows > div')];
+    if(!rows.length){ alert('Ajoutez au moins une voix.'); return; }
+    rows.forEach(r=>{
+      const vname=r.querySelector('[data-voice-name]').value||'Voix';
+      const vclef=r.querySelector('[data-voice-clef]').value||'G_2';
+      const cf=clefFromCode(vclef);
+      const ms=mkMs();
+      ms[0].clef=cf.clef; ms[0].clefOctave=cf.clefOctave; ms[0].clefLine=cf.clefLine;
+      newParts.push({id:'P'+(pid++)+Date.now().toString(36), name:vname, instrId:'voice',
+        strings:0, hasTab:false, showStaff:true, measures:ms,
+        clef:cf.clef, clefOctave:cf.clefOctave});
+    });
+    document.getElementById('ap-voice-rows').innerHTML='';
+    _apVoiceCount=0;
+  }
+
+  // Si on était en mono-piste, convertir en multi-piste d'abord
+  if(!score.parts||score.parts.length===0){
+    const cat=INSTRUMENT_CATALOG.find(c=>c.id===score.instr)||INSTRUMENT_CATALOG[0];
+    const existing={id:'P1', name:cat.label||'Instrument', instrId:score.instr||'guitar',
+      strings:score.strings||6,
+      tuning:[...(TUNING_SEMIS[score.instr]||TUNING_SEMIS.guitar)],
+      hasTab:false, showStaff:true,
+      measures:score.measures||[], clef:cat.clef||'G', clefOctave:cat.clefOctave||0};
+    score.parts=[existing];
+    score.activePart=0;
+  }
+
+  newParts.forEach(p=>score.parts.push(p));
+  closeDlg('dlg-add-part');
+  updatePartSelector(); buildPartsMgr(); render();
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT WELCOME + hook save pour récents
+// ═══════════════════════════════════════════════════════
+wlcLoadRecents();
+
+// Surcharger saveFile pour enregistrer dans les récents
+const _origSaveFile=saveFile;
+saveFile=function(){
+  _origSaveFile();
+  try{ const xml=genMXML(); saveRecent(xml); }catch(e){}
+};
+
 
 function flashNavBtn(dir){
   const map={right:'nav-right',left:'nav-left',up:'nav-up',down:'nav-down'};
@@ -5556,6 +7196,7 @@ initScore();
 updateDurUI();
 updateHints();
 updatePartSelector();
+buildPartsMgr();
 render();
 </script>
 </body>
