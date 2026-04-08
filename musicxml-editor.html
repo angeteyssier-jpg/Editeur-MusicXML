@@ -1756,7 +1756,7 @@ function render(){
 
     // ── 2. Espace base + lignes supplémentaires ──
     // Base 16px : espace serré portée→TAB
-    let gap = 16 + maxLedger * SP * 1.4;
+    let gap = 22 + maxLedger * SP * 1.4;
 
     // ── 3. Espace paroles ──
     if(hasLyric){
@@ -4613,6 +4613,13 @@ function parseMXML(xml){
           string:1, fret:0,
           articulations:[],dynamic:'',lyric:'',fingerLeft:'',fingerRight:'',bow:'',ornaments:[]
         };
+        // Détection noire pointée implicite : le convertisseur ABC→MusicXML omet parfois <dot>
+        // Si raw_dur = 1.5 × duration_du_type → c'est une note pointée
+        if(!n.dotted && currentDivisions>0){
+          const rawTicks=parseInt(nel.querySelector('duration')?.textContent||'0');
+          const typeTicks=(DIVS[dur_]||16)*currentDivisions/16;
+          if(Math.abs(rawTicks - typeTicks*1.5) < 0.5) n.dotted=true;
+        }
 
         // TAB : chercher les données TAB correspondantes (même position en ticks bruts)
         const posTicks = Math.round(rawPos * divisions / 16);
@@ -5051,7 +5058,7 @@ function renderMultiPart(mc){
       // Détecter paroles sur toutes les notes (y compris silences)
       if(m.notes.some(n=>n.lyric&&n.lyric.trim())) hasLyric=true;
     });
-    let gap=16+maxLedger*SP*1.4;
+    let gap=22+maxLedger*SP*1.4;
     if(hasLyric){
       const lyricSize=score.lyricSize||10;
       const lyricBottom=20+lyricSize+maxLedger*SP*0.9+10; // +10 marge anti-frottement
@@ -5076,7 +5083,7 @@ function renderMultiPart(mc){
       });
       if(m.notes.some(n=>n.lyric&&n.lyric.trim())) hasLyric=true;
     });
-    let gap=16+maxLedger*SP*1.4;
+    let gap=22+maxLedger*SP*1.4;
     if(hasLyric){ gap=Math.max(gap,20+(score.lyricSize||10)+maxLedger*SP*0.9+10); }
     return gap;
   }
@@ -7062,10 +7069,12 @@ function populateTabFromPart(staffPart, tabPart){
     tm.notes = sm.notes.map(n=>{
       const tn=Object.assign({},n);
       if(n.isRest){ tn.string=1; tn.fret=0; return tn; }
-      // Appliquer l'armure si la note n'a pas d'altération explicite
-      const key = sm.key ?? (staffPart.measures[0]?.key ?? 0);
-      const keyAlter = (n.alter===0||n.alter===undefined||n.alter===null)
-        ? keyAffectsNote(key, n.name) : 0;
+      // Appliquer l'armure propagée (getMeasureCtx propage la dernière clé connue)
+      const ctx=getMeasureCtx(mi, staffPart.measures);
+      const key=ctx.key||0;
+      // Appliquer l'armure seulement si la note n'a pas d'altération accidentelle
+      // (alter===0 ET pas d'accidental explicite dans le XML)
+      const keyAlter = (n.alter===0) ? keyAffectsNote(key, n.name) : 0;
       const effectiveAlter = (n.alter||0) + keyAlter;
       const midi=noteToMidi({...n, alter:effectiveAlter}, srcClefOctave)+octaveShift;
       let best=null;
