@@ -1727,8 +1727,8 @@ function render(){
   const TSP     = Math.round(8 * (score.staffScale||1.0));
   const NS_     = score.strings;
   const TAB_H   = (NS_-1)*TSP;
-  const TOP_PAD = 46;   // espace au-dessus (lignes supp. hautes + rehearsal marks)
-  const BOT_PAD = 14;
+  const TOP_PAD = 36;   // espace au-dessus (lignes supp. hautes + rehearsal marks)
+  const BOT_PAD = 8;
   const staffTop = TOP_PAD;
 
   // Calcul MID_GAP par rangée :
@@ -1755,8 +1755,8 @@ function render(){
     });
 
     // ── 2. Espace base + lignes supplémentaires ──
-    // Base 38px : espace naturel portée→TAB sans notes basses ni paroles
-    let gap = 38 + maxLedger * SP * 1.8;
+    // Base 16px : espace serré portée→TAB
+    let gap = 16 + maxLedger * SP * 1.4;
 
     // ── 3. Espace paroles ──
     if(hasLyric){
@@ -1977,7 +1977,10 @@ function drawBeams(svg, m, naX, naW, totD, staffTop, SP, eff_clef, eff_clefOctav
     });
 
     // ── Triolet : si groupe de 3 notes exactement dans l'espace d'une noire pointée ──
-    const isTripletGroup = grp.length===3 && (() => {
+    // Ne pas afficher en métrique composée (6/8, 9/8, 12/8) où les groupes de 3 sont normaux
+    const tn_=ctx?.timeNum||4, td_=ctx?.timeDen||4;
+    const isCompound=(td_===8&&(tn_===6||tn_===9||tn_===12));
+    const isTripletGroup = !isCompound && grp.length===3 && (() => {
       const first=grp[0], last=grp[grp.length-1];
       const span=last.pos+(DIVS[last.n.duration]||8)-first.pos;
       // Un triolet de croches = 24 div (noire pointée) ; de doubles = 12 div
@@ -2435,17 +2438,19 @@ function drawStaff(svg,m,mX,mW,staffTop,SP,naX,naW,PAD,isFirstInRow=false,isVery
   // ── 6. Volta bracket (reprise numérotée) ──
   if(m.volta){
     const v=m.volta;
-    const vY=staffTop-12; // au-dessus de la portée
-    const vH=10;          // hauteur du crochet
-    // Ligne horizontale du dessus
-    svgLine(mX+2, vY, mX+mW-(v.stop?2:0), vY, '#1a1a2e', 1.2, svg);
+    const vY=staffTop-14; // au-dessus de la portée
+    const vH=12;          // hauteur du crochet
+    const isSingle=v.start&&v.stop; // volta d'une seule mesure → fermer les deux côtés
+    // Ligne horizontale du dessus — va jusqu'au bord droit seulement si fin
+    const xEnd = (v.stop||isSingle) ? mX+mW-2 : mX+mW;
+    svgLine(mX+2, vY, xEnd, vY, '#1a1a2e', 1.5, svg);
     // Barre verticale gauche (si début)
-    if(v.start) svgLine(mX+2, vY, mX+2, vY+vH, '#1a1a2e', 1.2, svg);
-    // Barre verticale droite (si fin)
-    if(v.stop)  svgLine(mX+mW-2, vY, mX+mW-2, vY+vH, '#1a1a2e', 1.2, svg);
-    // Numéro
-    svgEl('text',{x:mX+6, y:vY+8, 'font-size':8, fill:'#1a1a2e',
-      'font-family':"'DM Sans',sans-serif", 'font-weight':'600',
+    if(v.start) svgLine(mX+2, vY, mX+2, vY+vH, '#1a1a2e', 1.5, svg);
+    // Barre verticale droite : seulement si fin (stop) ou volta d'une seule mesure
+    if(v.stop||isSingle) svgLine(mX+mW-2, vY, mX+mW-2, vY+vH, '#1a1a2e', 1.5, svg);
+    // Numéro — plus grand et plus visible
+    svgEl('text',{x:mX+7, y:vY+9, 'font-size':9, fill:'#1a1a2e',
+      'font-family':"Arial,Helvetica,sans-serif", 'font-weight':'700',
       'text-anchor':'start'},svg).textContent=v.num+'.';
   }
 
@@ -2753,16 +2758,16 @@ function drawNoteTab(svg,n,nX,tabTop,TSP,ns,isSel,mi,ni,isChord=false,partIdx=nu
   const ly=tabTop+li*TSP;
 
   const fstr=String(n.fret);
-  const bw=Math.max(14, fstr.length*8+6);
+  const bw=Math.max(16, fstr.length*9+6);
   const bgFill=isSel
     ? (selZone==='staff' ? 'rgba(200,160,0,0.12)' : 'rgba(30,144,255,0.15)')
     : '#faf8f3';
 
-  svgRect(nX-bw/2+3,ly-5,bw,10,bgFill,'none',svg);
+  svgRect(nX-bw/2+3,ly-6,bw,12,bgFill,'none',svg);
 
-  const te=svgEl('text',{x:nX+3,y:ly+3.5,
-    'font-size':8,fill:nc,'text-anchor':'middle',
-    'font-weight':'700','font-family':"'JetBrains Mono',monospace",
+  const te=svgEl('text',{x:nX+3,y:ly+4,
+    'font-size':10,fill:nc,'text-anchor':'middle',
+    'font-weight':'700','font-family':"Arial,Helvetica,sans-serif",
     cursor:'pointer'},svg);
   te.textContent=fstr;
   te.addEventListener('click',e=>{e.stopPropagation();if(partIdx!==null&&partIdx!==score.activePart){score.activePart=partIdx;score.measures=score.parts[partIdx]?.measures||[];}selectNote(mi,ni,false,'tab');});
@@ -4627,7 +4632,7 @@ function parseMXML(xml){
         const dynEl=nel.querySelector('dynamics');
         if(dynEl) n.dynamic=dynEl.firstElementChild?.tagName||'';
 
-        if(!isChord) pos+=DIVS[dur_]||16;
+        if(!isChord) pos+=(DIVS[dur_]||16)*(n.dotted?1.5:1);
         m.notes.push(n);
       });
       partObj.measures.push(m);
@@ -5013,8 +5018,8 @@ function renderMultiPart(mc){
   const SP=Math.round(7*(score.staffScale||1.0));
   const STAFF_H=SP*4;
   const TSP=Math.round(8*(score.staffScale||1.0));
-  const TOP_PAD=40;
-  const PART_GAP=24;
+  const TOP_PAD=28;
+  const PART_GAP=12;
   const BOT_PAD=14;
 
   const activePIdx=score.activePart||0;
@@ -5046,7 +5051,7 @@ function renderMultiPart(mc){
       // Détecter paroles sur toutes les notes (y compris silences)
       if(m.notes.some(n=>n.lyric&&n.lyric.trim())) hasLyric=true;
     });
-    let gap=38+maxLedger*SP*1.8;
+    let gap=16+maxLedger*SP*1.4;
     if(hasLyric){
       const lyricSize=score.lyricSize||10;
       const lyricBottom=20+lyricSize+maxLedger*SP*0.9+10; // +10 marge anti-frottement
@@ -5071,7 +5076,7 @@ function renderMultiPart(mc){
       });
       if(m.notes.some(n=>n.lyric&&n.lyric.trim())) hasLyric=true;
     });
-    let gap=38+maxLedger*SP*1.8;
+    let gap=16+maxLedger*SP*1.4;
     if(hasLyric){ gap=Math.max(gap,20+(score.lyricSize||10)+maxLedger*SP*0.9+10); }
     return gap;
   }
@@ -5324,7 +5329,9 @@ function renderMeasMulti(svg,m,globalMi,mX,mW,staffTop,tabTop,SP,TSP,ns,showS,sh
   const prev_=globalMi>0?getMeasureCtx(globalMi-1, partMeasures):null;
   const hasClefCh=globalMi>0&&(ctx_.clef!==prev_?.clef||ctx_.clefOctave!==prev_?.clefOctave||ctx_.clefLine!==prev_?.clefLine);
   const hasTimeCh=globalMi>0&&(ctx_.timeNum!==prev_?.timeNum||ctx_.timeDen!==prev_?.timeDen);
+  const hasKeyCh=globalMi>0&&(ctx_.key||0)!==(prev_?.key||0);
   const showClef_=isFirstInRow||hasClefCh; const showTime_=isVeryFirst||hasTimeCh;
+  const showKeyChange_=isVeryFirst||hasKeyCh;
   const PAD = computePAD(m, globalMi, partMeasures, SP, isFirstInRow, isVeryFirst);
   const naX=mX+PAD;
   const naW=mW-PAD-6;
@@ -5351,7 +5358,7 @@ function renderMeasMulti(svg,m,globalMi,mX,mW,staffTop,tabTop,SP,TSP,ns,showS,sh
     svgText(m.num, mX+2, staffTop-6, 8, '#aaaaaa','start','400',svg);
 
   if(showS){
-    drawStaff(svg,m,mX,mW,staffTop,SP,naX,naW,PAD,isFirstInRow,isVeryFirst);
+    drawStaff(svg,m,mX,mW,staffTop,SP,naX,naW,PAD,isFirstInRow,isVeryFirst,ctx_,showClef_,showTime_,showKeyChange_);
   }
   if(showT){
     drawTabLines(svg,m,mX,mW,tabTop,TSP,ns,naX,naW,isFirstInRow);
@@ -5468,12 +5475,15 @@ function renderMeasMulti(svg,m,globalMi,mX,mW,staffTop,tabTop,SP,TSP,ns,showS,sh
 
   // ── Volta bracket ──────────────────────────────────────────────
   if(showS && m.volta && partIdx===0){
-    const v=m.volta; const vY=staffTop-12; const vH=10;
-    svgLine(mX+2,vY,mX+mW-(v.stop?2:0),vY,'#1a1a2e',1.2,svg);
-    if(v.start) svgLine(mX+2,vY,mX+2,vY+vH,'#1a1a2e',1.2,svg);
-    if(v.stop)  svgLine(mX+mW-2,vY,mX+mW-2,vY+vH,'#1a1a2e',1.2,svg);
-    svgEl('text',{x:mX+6,y:vY+8,'font-size':8,fill:'#1a1a2e',
-      'font-family':"'DM Sans',sans-serif",'font-weight':'600','text-anchor':'start'},svg).textContent=v.num+'.';
+    const v=m.volta;
+    const vY=staffTop-14; const vH=12;
+    const isSingle=v.start&&v.stop;
+    const xEnd=(v.stop||isSingle)?mX+mW-2:mX+mW;
+    svgLine(mX+2,vY,xEnd,vY,'#1a1a2e',1.5,svg);
+    if(v.start) svgLine(mX+2,vY,mX+2,vY+vH,'#1a1a2e',1.5,svg);
+    if(v.stop||isSingle) svgLine(mX+mW-2,vY,mX+mW-2,vY+vH,'#1a1a2e',1.5,svg);
+    svgEl('text',{x:mX+7,y:vY+9,'font-size':9,fill:'#1a1a2e',
+      'font-family':"Arial,Helvetica,sans-serif",'font-weight':'700','text-anchor':'start'},svg).textContent=v.num+'.';
   }
 
   // ── Barres de groupement ──────────────────────────────────────
@@ -7052,7 +7062,12 @@ function populateTabFromPart(staffPart, tabPart){
     tm.notes = sm.notes.map(n=>{
       const tn=Object.assign({},n);
       if(n.isRest){ tn.string=1; tn.fret=0; return tn; }
-      const midi=noteToMidi(n, srcClefOctave)+octaveShift;
+      // Appliquer l'armure si la note n'a pas d'altération explicite
+      const key = sm.key ?? (staffPart.measures[0]?.key ?? 0);
+      const keyAlter = (n.alter===0||n.alter===undefined||n.alter===null)
+        ? keyAffectsNote(key, n.name) : 0;
+      const effectiveAlter = (n.alter||0) + keyAlter;
+      const midi=noteToMidi({...n, alter:effectiveAlter}, srcClefOctave)+octaveShift;
       let best=null;
       for(let s=nStrings; s>=1; s--){
         const fret=midi-tuning[s-1];
